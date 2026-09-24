@@ -3,6 +3,7 @@ import { HEARTBEAT_INTERVAL_MS } from "./constants";
 import { createApp } from "./server";
 import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
+import { PositionService } from "./services/positionService";
 import { Simulation } from "./simulation";
 import { logStartup, startStatusLogger } from "./terminal";
 
@@ -22,8 +23,12 @@ async function main(): Promise<void> {
     return { x, length, mass };
   });
   const election = new ElectionService(nodeId, membership);
-  server.on("request", createApp({ nodeId, port }, simulation, { membership, election }));
-  simulation.startLoop();
+  const position = new PositionService(nodeId, membership);
+  server.on(
+    "request",
+    createApp({ nodeId, port }, simulation, { membership, election, position }),
+  );
+  simulation.startLoop(() => position.broadcastPosition(simulation.state.angle));
 
   logStartup(config);
   await membership.probeLowerPorts();

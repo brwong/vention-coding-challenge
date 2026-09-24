@@ -60,10 +60,16 @@ export class Simulation {
     this._state = updatePendulum(this._state, this._config.length);
   }
 
-  /** Starts the 60 Hz timer. Ticks are no-ops unless the lifecycle is running. */
-  startLoop(): void {
+  /**
+   * Starts the 60 Hz timer. Ticks are no-ops unless the lifecycle is running,
+   * but `afterTick` runs on every one.
+   */
+  startLoop(afterTick: () => void = () => {}): void {
     if (this.timer) return;
-    this.timer = setInterval(() => this.tick(), 1000 / PHYSICS_HZ);
+    this.timer = setInterval(() => {
+      this.tick();
+      afterTick();
+    }, 1000 / PHYSICS_HZ);
   }
 
   stopLoop(): void {

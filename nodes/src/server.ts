@@ -3,6 +3,7 @@ import express, { type ErrorRequestHandler, type Express } from "express";
 import { ConfigError, parseConfigUpdate } from "./config";
 import type { ElectionService } from "./services/electionService";
 import type { MembershipService } from "./services/membershipService";
+import type { PositionService } from "./services/positionService";
 import { type Message, MessageError, parseMessage, senderOf } from "./services/messages";
 import type { PendulumConfig, Simulation } from "./simulation";
 
@@ -14,6 +15,7 @@ export interface NodeIdentity {
 export interface Services {
   membership: MembershipService;
   election: ElectionService;
+  position: PositionService;
 }
 
 // Nodes only listen on loopback, so accept the web UI from any local port.
@@ -32,6 +34,8 @@ function configBody(config: PendulumConfig) {
 async function routeMessage(message: Message, services: Services): Promise<object> {
   switch (message.type) {
     case "JOIN":
+      // A joining node may be a restarted process whose `seq` began again at 0.
+      services.position.forget(message.nodeId);
       return services.membership.handleJoin(message);
     case "HEARTBEAT":
       services.election.handleHeartbeat(message);
@@ -40,6 +44,9 @@ async function routeMessage(message: Message, services: Services): Promise<objec
       return services.election.handleElectionRequest(message);
     case "ELECTION_RESPONSE":
       services.election.handleElectionResponse(message);
+      break;
+    case "POSITION":
+      services.position.handlePosition(message);
       break;
   }
   return { accepted: true };
@@ -101,7 +108,7 @@ export function createApp(
   });
 
   app.get("/protocol-status", (_req, res) => {
-    const { membership, election } = services;
+    const { membership, election, position } = services;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
@@ -114,6 +121,7 @@ export function createApp(
         config: peer.config,
         msSinceHeartbeat: now - peer.lastHeartbeat,
         suspected: membership.isSuspected(peer, now),
+        position: position.positionCache.get(peer.nodeId) ?? null,
       })),
     });
   });

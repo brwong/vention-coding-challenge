@@ -424,8 +424,8 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.3 Position Sharing
 
-- [ ] Create `src/services/positionService.ts`
-  - [ ] Define `PositionMessage` interface:
+- [x] Create `src/services/positionService.ts`
+  - [x] Define `PositionMessage` interface:
     ```ts
     interface PositionMessage {
       type: 'POSITION';
@@ -434,14 +434,14 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
       seq: number; // monotonically increasing
     }
     ```
-  - [ ] Maintain `positionCache: Map<string, PositionMessage>` - latest known position for each peer
-  - [ ] Implement `broadcastPosition(myNodeId: string, angle: number, seq: number, peers: Peer[]): Promise<void>`
-    - [ ] Send `POSITION` message to all peers
-    - [ ] Increment `seq` after each broadcast
-  - [ ] Implement `handlePosition(message: PositionMessage): void`
-    - [ ] If `seq > cache[pendulumId].seq`, update cache
-    - [ ] Ignore out-of-order messages
-  - [ ] Start periodic position broadcast (e.g., every physics tick or every few ticks)
+  - [x] Maintain `positionCache: Map<string, PositionMessage>` - latest known position for each peer
+  - [x] Implement `broadcastPosition(myNodeId: string, angle: number, seq: number, peers: Peer[]): Promise<void>`
+    - [x] Send `POSITION` message to all peers
+    - [x] Increment `seq` after each broadcast
+  - [x] Implement `handlePosition(message: PositionMessage): void`
+    - [x] If `seq > cache[pendulumId].seq`, update cache
+    - [x] Ignore out-of-order messages
+  - [x] Start periodic position broadcast (e.g., every physics tick or every few ticks)
 
 ### 4.4 Collision Detection
 
