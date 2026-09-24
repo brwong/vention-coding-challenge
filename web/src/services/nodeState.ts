@@ -74,3 +74,15 @@ export function pollNodeStates(
     clearTimeout(timer)
   }
 }
+
+export type LifecycleCommand = 'start' | 'pause' | 'stop'
+
+export async function sendCommand(port: number, command: LifecycleCommand): Promise<void> {
+  const response = await fetch(nodeUrl(port, `/${command}`), {
+    method: 'POST',
+    signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    throw new Error(`POST /${command} on port ${port} failed with ${response.status}`)
+  }
+}

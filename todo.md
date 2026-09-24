@@ -334,12 +334,12 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 3.5 Basic Controls
 
-- [ ] Add control buttons to `src/App.tsx`
-  - [ ] "Start All" - sends POST to `/start` on all discovered nodes concurrently
-  - [ ] "Pause All" - sends POST to `/pause` on all discovered nodes concurrently
-  - [ ] "Stop All" - sends POST to `/stop` on all discovered nodes concurrently
-  - [ ] "Refresh Nodes" - manually trigger node rescan
-  - [ ] Report partial failures (e.g., "Started 4/5 nodes, 1 failed")
+- [x] Add control buttons to `src/App.tsx`
+  - [x] "Start All" - sends POST to `/start` on all discovered nodes concurrently
+  - [x] "Pause All" - sends POST to `/pause` on all discovered nodes concurrently
+  - [x] "Stop All" - sends POST to `/stop` on all discovered nodes concurrently
+  - [x] "Refresh Nodes" - manually trigger node rescan
+  - [x] Report partial failures (e.g., "Started 4/5 nodes, 1 failed")
 
 **Testable outcome:**
 - Running 3+ node servers on different ports (e.g., 7700, 7701, 7702)

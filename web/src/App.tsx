@@ -3,7 +3,25 @@ import { NodeList } from './components/NodeList'
 import { NodeSelector } from './components/NodeSelector'
 import { PendulumCanvas } from './components/PendulumCanvas'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
-import { type PendulumStatus, RUNNING_POLL_INTERVAL_MS, pollNodeStates } from './services/nodeState'
+import {
+  type LifecycleCommand,
+  type PendulumStatus,
+  RUNNING_POLL_INTERVAL_MS,
+  pollNodeStates,
+  sendCommand,
+} from './services/nodeState'
+
+const COMMAND_VERBS: Record<LifecycleCommand, string> = {
+  start: 'Started',
+  pause: 'Paused',
+  stop: 'Stopped',
+}
+
+const GROUP_COMMANDS: { command: LifecycleCommand; label: string }[] = [
+  { command: 'start', label: 'Start All' },
+  { command: 'pause', label: 'Pause All' },
+  { command: 'stop', label: 'Stop All' },
+]
 
 /** True when two scans found the same nodes, ignoring when each was last seen. */
 function sameNodes(a: NodeInfo[], b: NodeInfo[]): boolean {
@@ -22,6 +40,11 @@ function App() {
   const [statuses, setStatuses] = useState(new Map<string, PendulumStatus>())
   const [lastUpdated, setLastUpdated] = useState(new Map<string, number>())
   const [selectedNodeId, setSelectedNodeId] = useState<string>()
+  const [actionMessage, setActionMessage] = useState<string>()
+  const [busy, setBusy] = useState(false)
+  // Bumping these restarts the scan or the polling right away.
+  const [scanKey, setScanKey] = useState(0)
+  const [pollKey, setPollKey] = useState(0)
 
   useEffect(
     () =>
@@ -30,7 +53,7 @@ function App() {
         // Keep the old array when nothing changed so polling isn't restarted.
         setNodes((previous) => (sameNodes(previous, found) ? previous : found))
       }),
-    [],
+    [scanKey],
   )
 
   useEffect(
@@ -44,8 +67,27 @@ function App() {
           return next
         })
       }),
-    [nodes],
+    [nodes, pollKey],
   )
+
+  const activeNodes = nodes.filter((node) => node.status === 'active')
+
+  async function runGroupCommand(command: LifecycleCommand) {
+    setBusy(true)
+    const results = await Promise.allSettled(
+      activeNodes.map((node) => sendCommand(node.port, command)),
+    )
+    const failed = activeNodes.filter((_, i) => results[i].status === 'rejected')
+    const succeeded = activeNodes.length - failed.length
+    let message = `${COMMAND_VERBS[command]} ${succeeded}/${activeNodes.length} nodes`
+    if (failed.length > 0) {
+      message += `, ${failed.length} failed (${failed.map((node) => node.nodeId).join(', ')})`
+    }
+    setActionMessage(message)
+    setBusy(false)
+    // Poll now rather than wait out the idle interval, so the change shows at once.
+    setPollKey((key) => key + 1)
+  }
 
   // Default to the first node, and drop a selection whose node is gone.
   const selected = nodes.some((node) => node.nodeId === selectedNodeId)
@@ -56,6 +98,26 @@ function App() {
     <div className="app">
       <header>
         <h1>Pendulum</h1>
+        <div className="controls">
+          {GROUP_COMMANDS.map(({ command, label }) => (
+            <button
+              key={command}
+              type="button"
+              disabled={busy || activeNodes.length === 0}
+              onClick={() => runGroupCommand(command)}
+            >
+              {label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setScanKey((key) => key + 1)}>
+            Refresh Nodes
+          </button>
+        </div>
+        {actionMessage && (
+          <p className="action-message" role="status">
+            {actionMessage}
+          </p>
+        )}
       </header>
       {nodes.length === 0 ? (
         <p className="empty">{scanned ? 'No nodes found' : 'Scanning for nodes…'}</p>
