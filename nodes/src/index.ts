@@ -5,6 +5,7 @@ import { CollisionService } from "./services/collisionService";
 import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
 import { PositionService } from "./services/positionService";
+import { ProtocolService } from "./services/protocolService";
 import { Simulation } from "./simulation";
 import { logStartup, startStatusLogger } from "./terminal";
 
@@ -25,9 +26,10 @@ async function main(): Promise<void> {
   });
   const election = new ElectionService(nodeId, membership);
   const position = new PositionService(nodeId, membership);
+  const protocol = new ProtocolService(nodeId, simulation, membership, election);
   server.on(
     "request",
-    createApp({ nodeId, port }, simulation, { membership, election, position }),
+    createApp({ nodeId, port }, simulation, { membership, election, position, protocol }),
   );
   const collision = new CollisionService(nodeId, simulation, membership, position, election);
   simulation.startLoop(() => {
@@ -47,6 +49,7 @@ async function main(): Promise<void> {
   const shutdown = () => {
     stopHeartbeat();
     stopElectionTimer();
+    protocol.dispose();
     stopStatusLogger();
     simulation.stopLoop();
     server.close();

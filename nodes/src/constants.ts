@@ -33,3 +33,6 @@ export const PEER_TIMEOUT_MS = 10000; // silent this long: removed from the peer
 export const ELECTION_TIMEOUT_MS = 2000; // no leader heartbeat this long: start an election
 export const ELECTION_JITTER_MS = 500; // random extra wait so followers rarely run at once
 export const ELECTION_CHECK_INTERVAL_MS = 100;
+export const STOP_TO_RESTART_DELAY_MS = 500; // leader's pause between STOP and RESTART
+export const RESTART_BARRIER_TIMEOUT_MS = 10000; // restart anyway if RESTARTs are missing
+export const RESTART_DELAY_MS = 5000; // wait after the RESTART barrier before resuming

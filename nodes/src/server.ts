@@ -4,6 +4,7 @@ import { ConfigError, parseConfigUpdate } from "./config";
 import type { ElectionService } from "./services/electionService";
 import type { MembershipService } from "./services/membershipService";
 import type { PositionService } from "./services/positionService";
+import type { ProtocolService } from "./services/protocolService";
 import { type Message, MessageError, parseMessage, senderOf } from "./services/messages";
 import type { PendulumConfig, Simulation } from "./simulation";
 
@@ -16,6 +17,7 @@ export interface Services {
   membership: MembershipService;
   election: ElectionService;
   position: PositionService;
+  protocol: ProtocolService;
 }
 
 // Nodes only listen on loopback, so accept the web UI from any local port.
@@ -47,6 +49,14 @@ async function routeMessage(message: Message, services: Services): Promise<objec
       break;
     case "POSITION":
       services.position.handlePosition(message);
+      break;
+    case "COLLISION_DETECTED":
+      return services.protocol.handleCollisionDetected(message);
+    case "STOP":
+      services.protocol.handleStop(message);
+      break;
+    case "RESTART":
+      services.protocol.handleRestart(message);
       break;
   }
   return { accepted: true };
@@ -111,13 +121,17 @@ export function createApp(
   });
 
   app.get("/protocol-status", (_req, res) => {
-    const { membership, election, position } = services;
+    const { membership, election, position, protocol } = services;
+    const { lifecycle, restartBarrier, quorumSize } = protocol.state;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
       term: election.currentTerm,
       leader: election.leaderId,
       isLeader: election.isLeader,
+      lifecycle,
+      restartBarrier: [...restartBarrier],
+      quorumSize,
       peers: [...membership.peers.values()].map((peer) => ({
         nodeId: peer.nodeId,
         port: peer.port,

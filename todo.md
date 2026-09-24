@@ -468,12 +468,12 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.5 STOP/RESTART Protocol
 
-- [ ] Create `src/services/protocolService.ts`
-  - [ ] Define lifecycle states:
+- [x] Create `src/services/protocolService.ts`
+  - [x] Define lifecycle states:
     ```ts
     type LifecycleState = 'running' | 'paused' | 'stopped' | 'restarting';
     ```
-  - [ ] Define coordination state:
+  - [x] Define coordination state:
     ```ts
     interface CoordinationState {
       currentTerm: number;
@@ -483,45 +483,45 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
       quorumSize: number; // e.g., 4 out of 5, or all if cluster is small
     }
     ```
-  - [ ] Implement `handleStop(message: any, myNodeId: string): void`
-    - [ ] If `message.term <= currentTerm`, ignore
-    - [ ] If `message.term > currentTerm`, update `currentTerm`, set `lifecycle = 'stopped'`
-    - [ ] Stop physics simulation
-  - [ ] Implement `handleRestart(message: any, myNodeId: string): void`
-    - [ ] If `message.term < currentTerm`, ignore
-    - [ ] If `message.term === currentTerm`, add `message.from` to `restartBarrier`
-    - [ ] If `restartBarrier.size >= quorumSize`:
-      - [ ] Start 5-second timer
-      - [ ] Set `lifecycle = 'restarting'`
-      - [ ] After 5s: reset pendulum to initial angle, set `lifecycle = 'running'`, clear barrier
-  - [ ] Implement `handleCollisionDetected(message: any, myNodeId: string, isLeader: boolean): void`
-    - [ ] If I'm leader and `message.term === currentTerm`:
-      - [ ] Increment term
-      - [ ] Broadcast `STOP` with new term to all peers
-      - [ ] After brief delay (e.g., 500ms), broadcast `RESTART` with same term
-  - [ ] Implement `broadcastStop(term: number, peers: Peer[]): Promise<void>`
-  - [ ] Implement `broadcastRestart(term: number, peers: Peer[]): Promise<void>`
+  - [x] Implement `handleStop(message: any, myNodeId: string): void`
+    - [x] If `message.term <= currentTerm`, ignore
+    - [x] If `message.term > currentTerm`, update `currentTerm`, set `lifecycle = 'stopped'`
+    - [x] Stop physics simulation
+  - [x] Implement `handleRestart(message: any, myNodeId: string): void`
+    - [x] If `message.term < currentTerm`, ignore
+    - [x] If `message.term === currentTerm`, add `message.from` to `restartBarrier`
+    - [x] If `restartBarrier.size >= quorumSize`:
+      - [x] Start 5-second timer
+      - [x] Set `lifecycle = 'restarting'`
+      - [x] After 5s: reset pendulum to initial angle, set `lifecycle = 'running'`, clear barrier
+  - [x] Implement `handleCollisionDetected(message: any, myNodeId: string, isLeader: boolean): void`
+    - [x] If I'm leader and `message.term === currentTerm`:
+      - [x] Increment term
+      - [x] Broadcast `STOP` with new term to all peers
+      - [x] After brief delay (e.g., 500ms), broadcast `RESTART` with same term
+  - [x] Implement `broadcastStop(term: number, peers: Peer[]): Promise<void>`
+  - [x] Implement `broadcastRestart(term: number, peers: Peer[]): Promise<void>`
 
-- [ ] Extend `src/server.ts` `/message` endpoint
-  - [ ] Route messages by type:
-    - [ ] `JOIN` → membershipService.handleJoin()
-    - [ ] `JOIN_RESPONSE` → membershipService (already handled in probe)
-    - [ ] `HEARTBEAT` → electionService.handleHeartbeat()
-    - [ ] `ELECTION_REQUEST` → electionService.handleElection_request()
-    - [ ] `ELECTION_RESPONSE` → electionService.handleElection_response()
-    - [ ] `POSITION` → positionService.handlePosition()
-    - [ ] `COLLISION_DETECTED` → protocolService.handleCollisionDetected()
-    - [ ] `STOP` → protocolService.handleStop()
-    - [ ] `RESTART` → protocolService.handleRestart()
-  - [ ] Return appropriate response for each message type
+- [x] Extend `src/server.ts` `/message` endpoint
+  - [x] Route messages by type:
+    - [x] `JOIN` → membershipService.handleJoin()
+    - [x] `JOIN_RESPONSE` → membershipService (already handled in probe)
+    - [x] `HEARTBEAT` → electionService.handleHeartbeat()
+    - [x] `ELECTION_REQUEST` → electionService.handleElection_request()
+    - [x] `ELECTION_RESPONSE` → electionService.handleElection_response()
+    - [x] `POSITION` → positionService.handlePosition()
+    - [x] `COLLISION_DETECTED` → protocolService.handleCollisionDetected()
+    - [x] `STOP` → protocolService.handleStop()
+    - [x] `RESTART` → protocolService.handleRestart()
+  - [x] Return appropriate response for each message type
 
-- [ ] Extend `src/index.ts`
-  - [ ] Initialize all services after server starts
-  - [ ] Run `probeLowerPorts()` and build initial peer list
-  - [ ] Start `startHeartbeat()` loop
-  - [ ] Start `broadcastPosition()` loop (every physics tick)
-  - [ ] Start `checkCollisions()` loop (every physics tick)
-  - [ ] Start leader election if no leader detected within timeout
+- [x] Extend `src/index.ts`
+  - [x] Initialize all services after server starts
+  - [x] Run `probeLowerPorts()` and build initial peer list
+  - [x] Start `startHeartbeat()` loop
+  - [x] Start `broadcastPosition()` loop (every physics tick)
+  - [x] Start `checkCollisions()` loop (every physics tick)
+  - [x] Start leader election if no leader detected within timeout
 
 ### 4.6 Terminal Status Updates
 

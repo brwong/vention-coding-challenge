@@ -46,6 +46,12 @@ export class Simulation {
     this._lifecycle = "running";
   }
 
+  /** Moves the pendulum back to its initial angle and holds it there until start(). */
+  beginRestart(): void {
+    this._state = createPendulum(this._config.angle);
+    this._lifecycle = "restarting";
+  }
+
   pause(): void {
     this._lifecycle = "paused";
   }
