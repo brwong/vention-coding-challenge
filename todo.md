@@ -660,36 +660,36 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 These tests verify the core physics calculations. They're pure functions with no dependencies, making them trivial to test.
 
-- [ ] Test `normalizeAngle()`
-  - [ ] Edge case: `normalizeAngle(0) === 0`
-  - [ ] Edge case: `normalizeAngle(Math.PI) === Math.PI`
-  - [ ] Edge case: `normalizeAngle(-Math.PI) === -Math.PI`
-  - [ ] Edge case: `normalizeAngle(3 * Math.PI) === Math.PI` (wraps around)
-  - [ ] Edge case: `normalizeAngle(-3 * Math.PI) === -Math.PI` (wraps around)
-  - [ ] Edge case: `normalizeAngle(2 * Math.PI) === 0` (full rotation)
-  - [ ] Edge case: `normalizeAngle(Math.PI / 2) === Math.PI / 2` (no change needed)
-  - [ ] Edge case: `normalizeAngle(5 * Math.PI / 2) === Math.PI / 2` (wraps to same position)
+- [x] Test `normalizeAngle()`
+  - [x] Edge case: `normalizeAngle(0) === 0`
+  - [x] Edge case: `normalizeAngle(Math.PI)` is ±π (same orientation; the range is `[-π, π)`)
+  - [x] Edge case: `normalizeAngle(-Math.PI) === -Math.PI`
+  - [x] Edge case: `normalizeAngle(3 * Math.PI)` is ±π (wraps around)
+  - [x] Edge case: `normalizeAngle(-3 * Math.PI)` is ±π (wraps around)
+  - [x] Edge case: `normalizeAngle(2 * Math.PI) === 0` (full rotation)
+  - [x] Edge case: `normalizeAngle(Math.PI / 2) === Math.PI / 2` (no change needed)
+  - [x] Edge case: `normalizeAngle(5 * Math.PI / 2) === Math.PI / 2` (wraps to same position)
 
-- [ ] Test `updatePendulum()`
-  - [ ] Verify angle increases when starting from positive angle (pendulum swings)
-  - [ ] Verify angular velocity becomes negative after swinging past vertical
-  - [ ] Run 10 steps from 45°, verify angle is normalized and changing
-  - [ ] Verify energy conservation-ish behavior (oscillates, doesn't explode)
-  - [ ] Verify fixed timestep: running 60 updates with dt=1/60 should match 1 second of simulation
+- [x] Test `updatePendulum()`
+  - [x] Verify angle decreases toward vertical when starting from a positive angle (pendulum swings)
+  - [x] Verify angular velocity becomes negative after swinging past vertical
+  - [x] Run 10 steps from 45°, verify angle is normalized and changing
+  - [x] Verify energy conservation-ish behavior (oscillates, doesn't explode)
+  - [x] Verify fixed timestep: running 60 updates with dt=1/60 should match 1 second of simulation
 
-- [ ] Test `calculateBobRadius()`
-  - [ ] Verify formula: for mass=1kg, radius ≈ 0.031m (calculate expected value)
-  - [ ] Verify mass=8kg gives 2x radius (volume scales with cube)
-  - [ ] Verify radius is always positive
-  - [ ] Verify radius scales with cube root of mass
+- [x] Test `calculateBobRadius()`
+  - [x] Verify formula: unit density, so mass=1 gives radius ≈ 0.62 and mass=4200 gives ≈ 10
+  - [x] Verify mass=8kg gives 2x radius (volume scales with cube)
+  - [x] Verify radius is always positive
+  - [x] Verify radius scales with cube root of mass
 
-- [ ] Test `checkCollision()`
-  - [ ] Two bobs at same position → collision=true
-  - [ ] Two bobs far apart (> r1 + r2 + margin) → collision=false
-  - [ ] Two bobs touching exactly (distance = r1 + r2) → collision=true (within margin)
-  - [ ] Two bobs nearly touching (distance = r1 + r2 + 0.5 * margin) → collision=true
-  - [ ] Two bobs just outside margin (distance = r1 + r2 + 1.5 * margin) → collision=false
-  - [ ] Different mass bobs (different radii) at various distances
+- [x] Test `checkCollision()`
+  - [x] Two bobs at same position → collision=true
+  - [x] Two bobs far apart (> r1 + r2 + margin) → collision=false
+  - [x] Two bobs touching exactly (distance = r1 + r2) → collision=true (within margin)
+  - [x] Two bobs nearly touching (distance = r1 + r2 + 0.5 * margin) → collision=true
+  - [x] Two bobs just outside margin (distance = r1 + r2 + 1.5 * margin) → collision=false
+  - [x] Different mass bobs (different radii) at various distances
 
 **Expected runtime:** < 500ms for all physics tests
 
