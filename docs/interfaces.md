@@ -35,7 +35,7 @@ Supported flags:
 - `length` and `mass` must be positive.
 - `angle` may be positive, negative, or zero, subject to the simulation's normal range validation.
 - If `--x` is omitted, assign the hinge position from discovery/join order at a regular spacing.
-- If `--length`, `--mass`, or `--angle` is omitted, use node-defined defaults. Use reasonable initial values that produce a visually well-balanced pendulum; exact values are intentionally changeable later. A suitable initial implementation is `length = 150`, `mass = 1`, and `angle = 20` degrees.
+- If `--length`, `--mass`, or `--angle` is omitted, use node-defined defaults. Use reasonable initial values that produce a visually well-balanced pendulum; exact values are intentionally changeable later. A suitable initial implementation is `length = 100`, `mass = 4200` (a bob radius of about 10), and `angle = 20` degrees.
 - A node may start without CLI parameters, but it should still be configured using defaults and be ready to start. The UI must be able to read those current values before starting.
 - CLI-provided values are initial values and may be replaced through the UI before the simulation starts.
 - Provide normal `--help` output if the chosen argument parser supports it, but do not add unrelated flags such as `--verbose`, `--host`, or `--port`.

@@ -1,5 +1,5 @@
-export const DEFAULT_LENGTH = 150;
-export const DEFAULT_MASS = 1;
+export const DEFAULT_LENGTH = 100;
+export const DEFAULT_MASS = 4200; // bob radius ≈ 10
 export const DEFAULT_ANGLE_DEG = 20;
 
 export const MIN_ANGLE_DEG = -180;

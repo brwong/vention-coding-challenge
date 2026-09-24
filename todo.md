@@ -7,7 +7,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 **Key constraints from spec documents:**
 - Base port: `7700`, auto-increment on conflict (no `--port` flag) [interfaces:1]
 - CLI flags: `--x`, `--length`, `--mass`, `--angle` only [interfaces:1]
-- Default values: `length=150`, `mass=1`, `angle=20°` (degrees) [interfaces:1]
+- Default values: `length=100`, `mass=4200` (bob radius ≈ 10), `angle=20°` (degrees) [interfaces:1]
 - Physics: 60 Hz fixed timestep, semi-implicit Euler, full nonlinear equation [physics:1]
 - Node ID format: `node-7701` (derived from port) [interfaces:1]
 - UI: SVG rendering, HTTP polling only, no WebSockets [interfaces:1]
@@ -78,8 +78,8 @@ Do not mention this document in commit messages or code (comments). Check off it
     ```ts
     interface Config {
       x?: number;        // hinge x-coordinate (optional, assigned from join order if omitted)
-      length: number;    // pendulum length in meters (default: 150)
-      mass: number;      // bob mass in kg (default: 1)
+      length: number;    // pendulum length in distance units (default: 100)
+      mass: number;      // bob mass (default: 4200, radius ≈ 10)
       angle: number;     // initial angle in degrees (default: 20)
       port: number;      // auto-discovered, not user-configurable
       nodeId: string;    // derived from port: `node-7701`
@@ -101,8 +101,8 @@ Do not mention this document in commit messages or code (comments). Check off it
 - [x] Create `src/constants.ts`
   - [x] Define named constants:
     ```ts
-    export const DEFAULT_LENGTH = 150;
-    export const DEFAULT_MASS = 1;
+    export const DEFAULT_LENGTH = 100;
+    export const DEFAULT_MASS = 4200; // bob radius ≈ 10
     export const DEFAULT_ANGLE_DEG = 20;
     export const BASE_PORT = 7700;
     export const MAX_PORT_SEARCH = 100; // prevent infinite loop
@@ -118,13 +118,12 @@ Do not mention this document in commit messages or code (comments). Check off it
     ```ts
     export const PHYSICS_HZ = 60;
     export const DT = 1 / 60;
-    export const GRAVITY = 9.81; // m/s²
-    export const BRASS_DENSITY = 8500; // kg/m³
-    export const COLLISION_MARGIN = 0.01; // meters
+    export const GRAVITY = 9.81; // distance units/s²
+    export const COLLISION_MARGIN = 0.01; // distance units
     export const MIN_MASS = 0.001;
-    export const MAX_MASS = 100;
+    export const MAX_MASS = 34000; // bob radius ≈ 20
     export const MIN_LENGTH = 0.05;
-    export const MAX_LENGTH = 100;
+    export const MAX_LENGTH = 200;
     export const MIN_ANGLE_RAD = -Math.PI;
     export const MAX_ANGLE_RAD = Math.PI;
     ```
@@ -150,7 +149,7 @@ Do not mention this document in commit messages or code (comments). Check off it
     - [ ] Update: `angle += angularVelocity * dt`
     - [ ] Normalize angle after update
   - [ ] Implement `calculateBobRadius(mass: number): number`
-    - [ ] Use brass density formula: `r = cbrt(3 * mass / (4 * π * BRASS_DENSITY))`
+    - [ ] Use unit density (mass = volume): `r = cbrt(3 * mass / (4 * π))`
   - [ ] Implement `getPosition(state: PendulumState, anchorX: number, anchorY: number, length: number): { x: number, y: number }`
     - [ ] Calculate: `x = anchorX + length * sin(angle)`, `y = anchorY + length * cos(angle)`
     - [ ] Note: Assumes positive Y points downward (screen coordinates)
@@ -179,8 +178,8 @@ Do not mention this document in commit messages or code (comments). Check off it
         },
         "config": {
           "x": 100,
-          "length": 150,
-          "mass": 1,
+          "length": 100,
+          "mass": 4200,
           "angle": 20
         },
         "lifecycle": "running" | "paused" | "stopped" | "restarting"
@@ -627,7 +626,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 - [ ] Add Jest or Vitest to `/nodes`
   - [ ] Unit tests for `normalizeAngle()` - edge cases: π, -π, 3π, -3π, 0
   - [ ] Unit tests for `updatePendulum()` - verify semi-implicit Euler behavior
-  - [ ] Unit tests for `calculateBobRadius()` - verify brass density formula
+  - [ ] Unit tests for `calculateBobRadius()` - verify mass-to-radius formula
   - [ ] Unit tests for `checkCollision()` - various distances and radii
   - [ ] Unit tests for CLI parsing - valid/invalid inputs, defaults
   - [ ] Unit tests for lifecycle state machine transitions
@@ -743,7 +742,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 - Key constants to keep in sync:
   - `BASE_PORT = 7700` [interfaces:1]
   - `PHYSICS_HZ = 60`, `DT = 1/60` [physics:1]
-  - `GRAVITY = 9.81`, `BRASS_DENSITY = 8500` [physics:1]
+  - `GRAVITY = 9.81` [physics:1]
   - `COLLISION_MARGIN = 0.01` [physics:1]
   - `MAX_CONSECUTIVE_MISSES = 10` [interfaces:1]
-  - `DEFAULT_LENGTH = 150`, `DEFAULT_MASS = 1`, `DEFAULT_ANGLE = 20°` [interfaces:1]
+  - `DEFAULT_LENGTH = 100`, `DEFAULT_MASS = 4200`, `DEFAULT_ANGLE = 20°` [interfaces:1]

@@ -13,10 +13,14 @@ Implement a two-dimensional pendulum consisting of:
 
 - A fixed hinge point.
 - A rigid, massless rod of configurable length.
-- A spherical brass bob of configurable mass.
+- A spherical bob of configurable mass.
 - Gravity.
 
 The rod cannot collide with other rods, bobs, or hinge points. Hinge points cannot register collisions. Only spherical bobs participate in collision detection.
+
+## Units
+
+Lengths, positions, and radii share one abstract distance unit, the same unit used for SVG/world coordinates. Mass uses an abstract mass unit. Neither is tied to SI units.
 
 Wind is out of scope.
 
@@ -54,8 +58,8 @@ Use the full nonlinear equation for every angle:
 where:
 
 - `alpha` is angular acceleration in radians per second squared.
-- `g` is gravitational acceleration; use `9.81 m/s²`.
-- `L` is rod length in metres.
+- `g` is gravitational acceleration; use `9.81` distance units per second squared.
+- `L` is rod length in distance units.
 - `theta` is angular position in radians.
 
 Do not replace `sin(theta)` with `theta`. Do not implement a separate linear model. Do not calculate or display an estimated period.
@@ -82,10 +86,10 @@ Use named constants or a centralized configuration object:
 
 ```ts
 const PHYSICS_HZ = 60;
-const MIN_MASS_KG = 0.001;
-const MAX_MASS_KG = 100;
-const MIN_LENGTH_M = 0.05;
-const MAX_LENGTH_M = 100;
+const MIN_MASS = 0.001;
+const MAX_MASS = 34000; // radius ≈ 20
+const MIN_LENGTH = 0.05;
+const MAX_LENGTH = 200;
 const MIN_ANGLE_RAD = -Math.PI;
 const MAX_ANGLE_RAD = Math.PI;
 ```
@@ -94,30 +98,26 @@ Validate values as finite numbers and reject values outside the configured range
 
 ## Bob geometry from mass
 
-Treat each bob as a solid brass sphere. Derive its radius from mass using brass density rather than accepting radius as an independent required input.
-
-```ts
-const BRASS_DENSITY_KG_PER_M3 = 8500;
-```
+Treat each bob as a solid sphere whose mass equals its volume (unit density). Derive its radius from mass rather than accepting radius as an independent required input.
 
 For mass `m`:
 
 \[
-V = \frac{m}{\rho}
+V = m
 \]
 
 \[
 r = \sqrt[3]{\frac{3V}{4\pi}}
-  = \sqrt[3]{\frac{3m}{4\pi\rho}}
+  = \sqrt[3]{\frac{3m}{4\pi}}
 \]
 
 The bob diameter is `2 * radius`.
 
-Keep density in one named configuration value.
+The default mass of `4200` gives a radius of about `10`.
 
 ## Physical and visual geometry
 
-The physical radius is calculated from mass and brass density. Rendering may apply a separate configurable visual scale:
+The physical radius is calculated from mass. Rendering may apply a separate configurable visual scale:
 
 ```ts
 const BOB_VISUAL_SCALE = 1;
@@ -155,7 +155,7 @@ For two bobs with centers `p1` and `p2` and physical radii `r1` and `r2`:
 Use:
 
 ```ts
-const COLLISION_MARGIN_M = 0.01;
+const COLLISION_MARGIN = 0.01;
 ```
 
 Keep the margin separate from bob radii and make it easy to change.

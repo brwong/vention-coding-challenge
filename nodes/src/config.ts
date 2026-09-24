@@ -14,7 +14,7 @@ import {
 export interface Config {
   x?: number; // hinge x-coordinate (optional, assigned from join order if omitted)
   length: number; // pendulum length (default: DEFAULT_LENGTH)
-  mass: number; // bob mass in kg (default: DEFAULT_MASS)
+  mass: number; // bob mass (default: DEFAULT_MASS)
   angle: number; // initial angle in degrees (default: DEFAULT_ANGLE_DEG)
   port: number; // auto-discovered, not user-configurable
   nodeId: string; // derived from port: `node-7701`

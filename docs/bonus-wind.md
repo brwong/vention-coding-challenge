@@ -2,7 +2,7 @@
 title: Bonus Wind Physics
 purpose: Implementation contract for adding simplified constant wind to the pendulum simulation, including its REST API.
 when_needed: Consult when implementing or reviewing the optional wind API, wind configuration, force calculation, integration, reset behavior, or tests.
-scope: Constant horizontal wind acting on spherical brass bobs; excludes gusts and advanced fluid dynamics.
+scope: Constant horizontal wind acting on spherical bobs; excludes gusts and advanced fluid dynamics.
 ---
 
 # Bonus Wind Physics
@@ -15,7 +15,7 @@ The pendulum remains:
 
 - A fixed hinge point.
 - A rigid, massless rod.
-- A spherical brass bob.
+- A spherical bob.
 - A configurable mass and length.
 - A gravity-driven nonlinear simulation using the existing fixed timestep.
 
@@ -120,7 +120,7 @@ Treat the bob as a sphere. Use its projected circular area facing the wind:
 A = \pi r^2
 \]
 
-where `r` is the physical bob radius calculated from mass and brass density.
+where `r` is the physical bob radius calculated from mass.
 
 Do not use the sphere’s total surface area `4 * PI * r²` for drag.
 
