@@ -637,22 +637,22 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 6.1 Test Infrastructure Setup
 
-- [ ] Install testing dependencies in `/nodes`
-  - [ ] `npm install --save-dev vitest @types/node`
-  - [ ] `npm install --save-dev supertest` (for API integration tests)
-  - [ ] Add test script to package.json: `"test": "vitest run"`
+- [x] Install testing dependencies in `/nodes`
+  - [x] `npm install --save-dev vitest @types/node`
+  - [x] `npm install --save-dev supertest` (for API integration tests)
+  - [x] Add test script to package.json: `"test": "vitest run"`
 
-- [ ] Install testing dependencies in `/web`
-  - [ ] `npm install --save-dev vitest @testing-library/react @testing-library/jest-dom jsdom`
-  - [ ] Add test script to package.json: `"test": "vitest run"`
+- [x] Install testing dependencies in `/web`
+  - [x] `npm install --save-dev vitest @testing-library/react @testing-library/jest-dom jsdom`
+  - [x] Add test script to package.json: `"test": "vitest run"`
 
-- [ ] Create `vitest.config.ts` in `/nodes`
-  - [ ] Configure test environment: `node`
-  - [ ] Set test match patterns: `**/*.test.ts`
+- [x] Create `vitest.config.ts` in `/nodes`
+  - [x] Configure test environment: `node`
+  - [x] Set test match patterns: `**/*.test.ts`
 
-- [ ] Create `vitest.config.ts` in `/web`
-  - [ ] Configure test environment: `jsdom`
-  - [ ] Set test match patterns: `**/*.test.tsx` and `**/*.test.ts`
+- [x] Create `vitest.config.ts` in `/web`
+  - [x] Configure test environment: `jsdom`
+  - [x] Set test match patterns: `**/*.test.tsx` and `**/*.test.ts`
 
 ### 6.2 Unit Tests - Physics Engine (TIER 1 - MUST HAVE)
 
