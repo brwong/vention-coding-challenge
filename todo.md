@@ -625,107 +625,444 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ---
 
-## Section 6: Polish & Production Readiness
+## Section 6: Comprehensive Testing
 
-**Goal:** Add tests, improve documentation, enable single-command startup, and prepare for submission.
+**Goal:** Implement a robust test suite that validates physics correctness, API behavior, and distributed coordination scenarios. Focus on high-impact tests that catch embarrassing bugs.
 
-### 6.1 Testing
+**Testing philosophy:** Test the things that would be embarrassing to break in a demo. Prioritize tests that verify:
+1. Physics calculations are correct
+2. API endpoints behave as documented
+3. Distributed protocol handles failures gracefully
+4. Collision detection and STOP/RESTART work end-to-end
 
-- [ ] Add Jest or Vitest to `/nodes`
-  - [ ] Unit tests for `normalizeAngle()` - edge cases: π, -π, 3π, -3π, 0
-  - [ ] Unit tests for `updatePendulum()` - verify semi-implicit Euler behavior
-  - [ ] Unit tests for `calculateBobRadius()` - verify mass-to-radius formula
-  - [ ] Unit tests for `checkCollision()` - various distances and radii
-  - [ ] Unit tests for CLI parsing - valid/invalid inputs, defaults
-  - [ ] Unit tests for lifecycle state machine transitions
-  - [ ] Integration tests for REST API endpoints (use `supertest`)
-    - [ ] GET /status returns correct shape
-    - [ ] PUT /config validates and rejects invalid inputs
-    - [ ] POST /start, /pause, /stop change lifecycle state
-    - [ ] POST /message handles all message types
+### 6.1 Test Infrastructure Setup
 
-- [ ] Add Vitest + React Testing Library to `/web`
-  - [ ] Component tests for `PendulumCanvas` - renders SVG with correct elements
-  - [ ] Component tests for `NodeConfigForm` - inputs and apply button work
-  - [ ] Test node discovery service (mock fetch)
-  - [ ] Test state polling service (mock fetch)
+- [ ] Install testing dependencies in `/nodes`
+  - [ ] `npm install --save-dev vitest @types/node`
+  - [ ] `npm install --save-dev supertest` (for API integration tests)
+  - [ ] Add test script to package.json: `"test": "vitest run"`
 
-### 6.2 Single-Command Startup
+- [ ] Install testing dependencies in `/web`
+  - [ ] `npm install --save-dev vitest @testing-library/react @testing-library/jest-dom jsdom`
+  - [ ] Add test script to package.json: `"test": "vitest run"`
 
-- [ ] Install `concurrently` in root: `npm install --save-dev concurrently`
+- [ ] Create `vitest.config.ts` in `/nodes`
+  - [ ] Configure test environment: `node`
+  - [ ] Set test match patterns: `**/*.test.ts`
 
-- [ ] Create root-level `package.json` with scripts:
-  ```json
-  {
-    "scripts": {
-      "install:all": "npm install && cd nodes && npm install && cd ../web && npm install",
-      "build:all": "cd nodes && npm run build && cd ../web && npm run build",
-      "start:nodes": "concurrently \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\"",
-      "start:web": "cd web && npm run dev",
-      "dev": "concurrently \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd nodes && npm start\" \"cd web && npm run dev\"",
-      "test:nodes": "cd nodes && npm test",
-      "test:web": "cd web && npm test"
-    }
-  }
-  ```
+- [ ] Create `vitest.config.ts` in `/web`
+  - [ ] Configure test environment: `jsdom`
+  - [ ] Set test match patterns: `**/*.test.tsx` and `**/*.test.ts`
 
-- [ ] Create startup script `scripts/start-nodes.sh` (Unix) and `scripts/start-nodes.bat` (Windows)
-  - [ ] Starts 5 nodes on ports 7700-7704 (they auto-assign, but this ensures clean startup order)
-  - [ ] Optional: add small delay between starts to ensure clean port assignment
+### 6.2 Unit Tests - Physics Engine (TIER 1 - MUST HAVE)
 
-- [ ] Optional bonus: Create `docker-compose.yml`
-  - [ ] Define services for each node and the web UI
-  - [ ] Configure networking and ports
-  - [ ] Single `docker-compose up` starts everything
+**File: `/nodes/src/physics.test.ts`**
 
-### 6.3 Documentation
+These tests verify the core physics calculations. They're pure functions with no dependencies, making them trivial to test.
 
-- [ ] Update root `README.md`
-  - [ ] Architecture diagram (ASCII or embedded image showing nodes + UI)
-  - [ ] Explanation of distributed design decisions:
-    - [ ] Why leader/lease/election for STOP/RESTART
-    - [ ] Why push-based position sharing
-    - [ ] Why term-based filtering (avoid split-brain)
-  - [ ] Trade-offs:
-    - [ ] HTTP polling vs WebSockets (simplicity over real-time)
-    - [ ] Semi-implicit Euler vs RK4 (simplicity over precision)
-    - [ ] Single-host assumption (scope of challenge)
-  - [ ] Known limitations:
-    - [ ] No multi-host support
-    - [ ] No wind simulation
-    - [ ] Collision detection uses latest-known state approximation
-  - [ ] How to run: `npm run dev`
-  - [ ] How to run tests: `npm test`
-  - [ ] CLI parameter reference: `--x`, `--length`, `--mass`, `--angle`
+- [ ] Test `normalizeAngle()`
+  - [ ] Edge case: `normalizeAngle(0) === 0`
+  - [ ] Edge case: `normalizeAngle(Math.PI) === Math.PI`
+  - [ ] Edge case: `normalizeAngle(-Math.PI) === -Math.PI`
+  - [ ] Edge case: `normalizeAngle(3 * Math.PI) === Math.PI` (wraps around)
+  - [ ] Edge case: `normalizeAngle(-3 * Math.PI) === -Math.PI` (wraps around)
+  - [ ] Edge case: `normalizeAngle(2 * Math.PI) === 0` (full rotation)
+  - [ ] Edge case: `normalizeAngle(Math.PI / 2) === Math.PI / 2` (no change needed)
+  - [ ] Edge case: `normalizeAngle(5 * Math.PI / 2) === Math.PI / 2` (wraps to same position)
 
-- [ ] Verify `/docs/interfaces.md`, `/docs/coordination.md`, `/docs/physics.md` are complete and accurate (already provided)
+- [ ] Test `updatePendulum()`
+  - [ ] Verify angle increases when starting from positive angle (pendulum swings)
+  - [ ] Verify angular velocity becomes negative after swinging past vertical
+  - [ ] Run 10 steps from 45°, verify angle is normalized and changing
+  - [ ] Verify energy conservation-ish behavior (oscillates, doesn't explode)
+  - [ ] Verify fixed timestep: running 60 updates with dt=1/60 should match 1 second of simulation
 
-### 6.4 Final Polish
+- [ ] Test `calculateBobRadius()`
+  - [ ] Verify formula: for mass=1kg, radius ≈ 0.031m (calculate expected value)
+  - [ ] Verify mass=8kg gives 2x radius (volume scales with cube)
+  - [ ] Verify radius is always positive
+  - [ ] Verify radius scales with cube root of mass
 
-- [ ] Add error handling and logging improvements
-  - [ ] Graceful shutdown on SIGINT/SIGTERM (close server, log shutdown)
-  - [ ] Better error messages in API responses (400 with validation errors, 500 with internal errors)
-  - [ ] Request logging middleware in Express (morgan or custom)
+- [ ] Test `checkCollision()`
+  - [ ] Two bobs at same position → collision=true
+  - [ ] Two bobs far apart (> r1 + r2 + margin) → collision=false
+  - [ ] Two bobs touching exactly (distance = r1 + r2) → collision=true (within margin)
+  - [ ] Two bobs nearly touching (distance = r1 + r2 + 0.5 * margin) → collision=true
+  - [ ] Two bobs just outside margin (distance = r1 + r2 + 1.5 * margin) → collision=false
+  - [ ] Different mass bobs (different radii) at various distances
 
-- [ ] Add UI polish
-  - [ ] Loading skeletons during node discovery
-  - [ ] Toast notifications for errors
-  - [ ] Responsive design for mobile/tablet
-  - [ ] Accessibility audit (aria labels, keyboard navigation)
+**Expected runtime:** < 500ms for all physics tests
 
-- [ ] Verify bonus points
-  - [ ] TypeScript everywhere ✓
-  - [ ] Intuitive configuration UX (dragging + numeric inputs) ✓
-  - [ ] Single-command startup (`npm run dev`) ✓
-  - [ ] Unit tests for physics and API ✓
-  - [ ] (Optional) Wind simulation - intentionally out of scope per physics.md
+### 6.3 Unit Tests - Configuration & CLI (TIER 1 - MUST HAVE)
+
+**File: `/nodes/src/config.test.ts`**
+
+- [ ] Test CLI argument parsing
+  - [ ] `--angle 45` → config.angle === 45
+  - [ ] `--length 200 --mass 2` → both values parsed correctly
+  - [ ] `--x 100 --angle -30` → negative angle accepted
+  - [ ] No flags → defaults: length=150, mass=1, angle=20
+  - [ ] `--help` → prints help message, exits cleanly
+
+- [ ] Test validation
+  - [ ] `--length -10` → error/rejected (negative length)
+  - [ ] `--mass 0` → error/rejected (zero mass)
+  - [ ] `--angle 200` → error/rejected (out of range, > 180)
+  - [ ] `--angle abc` → error/rejected (non-numeric)
+  - [ ] `--length Infinity` → error/rejected (not finite)
+
+- [ ] Test port auto-discovery (mocked)
+  - [ ] Mock `createServer` to fail on 7700, succeed on 7701 → binds to 7701
+  - [ ] Mock `createServer` to fail on 7700-7705, succeed on 7706 → binds to 7706
+  - [ ] Verify nodeId is generated correctly: port 7703 → "node-7703"
+
+**Expected runtime:** < 500ms for all config tests
+
+### 6.4 Unit Tests - Coordination Protocol (TIER 1 - MUST HAVE)
+
+**File: `/nodes/src/protocol.test.ts`**
+
+- [ ] Test term filtering
+  - [ ] Receive STOP with term=3, current term=5 → ignore, state unchanged
+  - [ ] Receive STOP with term=6, current term=5 → accept, update term to 6, stop
+  - [ ] Receive RESTART with term=5, current term=5 → accept, add to barrier
+  - [ ] Receive RESTART with term=4, current term=5 → ignore
+
+- [ ] Test lifecycle state machine
+  - [ ] Start in 'running', receive STOP → transition to 'stopped'
+  - [ ] In 'stopped', receive RESTART from 4/5 nodes → transition to 'restarting', start 5s timer
+  - [ ] After 5s timer → transition to 'running', reset pendulum
+  - [ ] In 'running', receive RESTART → ignore (only valid in 'stopped')
+  - [ ] In 'restarting', receive STOP with higher term → transition to 'stopped', cancel timer
+
+- [ ] Test quorum calculation
+  - [ ] 5 nodes, receive 4 RESTARTs → barrier satisfied
+  - [ ] 5 nodes, receive 3 RESTARTs → barrier not satisfied
+  - [ ] 3 nodes (2 dead), receive 2 RESTARTs → barrier satisfied (quorum adjusts)
+
+- [ ] Test collision detection logic
+  - [ ] Two pendulums at same angle, same length, same anchor → collision detected
+  - [ ] Two pendulums at different angles → no collision
+  - [ ] Two pendulums with anchors far apart → no collision even at same angle
+
+**Expected runtime:** < 500ms for all protocol tests
+
+### 6.5 Integration Tests - REST API (TIER 1 - MUST HAVE)
+
+**File: `/nodes/src/api.test.ts`**
+
+Use `supertest` to make HTTP requests against the Express app.
+
+- [ ] Test `GET /status`
+  - [ ] Returns 200 with correct JSON shape
+  - [ ] Contains nodeId, port, state, config, lifecycle fields
+  - [ ] State contains angle (number), angularVelocity (number), running (boolean)
+
+- [ ] Test `GET /config`
+  - [ ] Returns 200 with current config
+  - [ ] Contains x, length, mass, angle fields
+  - [ ] Values match what was set on startup or last PUT
+
+- [ ] Test `PUT /config`
+  - [ ] Valid update: `{ length: 200 }` → returns 200, config updated
+  - [ ] Valid update: `{ mass: 2, angle: 30 }` → both fields updated
+  - [ ] Invalid update: `{ length: -10 }` → returns 400, config unchanged
+  - [ ] Invalid update: `{ mass: 0 }` → returns 400, config unchanged
+  - [ ] Invalid update: `{ angle: 200 }` → returns 400, config unchanged
+  - [ ] Invalid update: `{ angle: "abc" }` → returns 400, config unchanged
+
+- [ ] Test `POST /start`
+  - [ ] Returns 200, lifecycle changes to 'running'
+  - [ ] Subsequent `/status` shows running=true
+
+- [ ] Test `POST /pause`
+  - [ ] Returns 200, lifecycle changes to 'paused'
+  - [ ] Subsequent `/status` shows running=false, angle preserved
+
+- [ ] Test `POST /stop`
+  - [ ] Returns 200, lifecycle changes to 'stopped'
+
+- [ ] Test `POST /message`
+  - [ ] JOIN message → returns JOIN_RESPONSE with peer list
+  - [ ] HEARTBEAT message → returns 200, updates lastHeartbeat
+  - [ ] STOP message with valid term → returns 200, node stops
+  - [ ] RESTART message → returns 200, adds to restart barrier
+  - [ ] POSITION message → returns 200, updates position cache
+  - [ ] Invalid message type → returns 400
+
+- [ ] Test simulation behavior
+  - [ ] POST /start, wait 500ms, GET /status → angle has changed
+  - [ ] POST /pause, wait 500ms, GET /status → angle unchanged from pause
+  - [ ] PUT /config with new angle, GET /status → angle reset to new initial value
+
+**Expected runtime:** ~2-3 seconds for all API tests
+
+### 6.6 Multi-Node Tests - Distributed Coordination (TIER 2 - HIGH VALUE)
+
+**File: `/nodes/src/coordination.test.ts`**
+
+Use `child_process` to spawn actual node processes and test real distributed behavior.
+
+**Setup pattern:**
+```ts
+import { spawn, ChildProcess } from 'child_process';
+
+function startNode(args: string[] = []): Promise<{ port: number, process: ChildProcess }> {
+  return new Promise((resolve) => {
+    const proc = spawn('npm', ['start', ...args], { cwd: '/nodes' });
+    // Wait for "Pendulum Node node-770X started on port 770X" in stdout
+    // Parse port number, resolve promise
+  });
+}
+```
+
+- [ ] Test membership discovery
+  - [ ] Start node A (binds to 7700)
+  - [ ] Start node B (binds to 7701)
+  - [ ] Start node C (binds to 7702)
+  - [ ] Wait 2s for JOIN protocol
+  - [ ] GET /protocol-status on each → all know about all others
+  - [ ] Verify peer lists match expected: A knows [], B knows [A], C knows [A, B]
+
+- [ ] Test leader election
+  - [ ] Start 5 nodes sequentially
+  - [ ] Wait 3s for election to complete
+  - [ ] GET /protocol-status on all → same leader elected (highest nodeId)
+  - [ ] Kill leader process
+  - [ ] Wait 3s for new election
+  - [ ] GET /protocol-status on remaining → new leader elected (next highest)
+
+- [ ] Test collision → STOP/RESTART protocol
+  - [ ] Start 3 nodes with identical config (same length, mass, anchor x)
+  - [ ] POST /start on all 3
+  - [ ] Wait for natural collision (or manually set same initial angle)
+  - [ ] Within 500ms, all 3 nodes should be 'stopped'
+  - [ ] Within 6s, all 3 nodes should be 'running' again (5s restart + buffer)
+  - [ ] Verify all restarted in sync (angles within 0.1 rad of each other)
+
+- [ ] Test node failure during simulation
+  - [ ] Start 5 nodes, start simulation
+  - [ ] Kill middle node (e.g., node-7702)
+  - [ ] Remaining 4 nodes continue running (no cascade failure)
+  - [ ] Heartbeat timeout detects dead node within 10s
+  - [ ] Restart killed node
+  - [ ] Node rejoins via JOIN protocol, resumes simulation
+
+**Expected runtime:** ~10-15 seconds for all coordination tests
+
+**Implementation tips:**
+- Use `proc.kill('SIGTERM')` for graceful shutdown
+- Add timeout: fail test if coordination takes > 10s
+- Log stdout/stderr for debugging
+- Clean up all processes in `afterEach()` hook
+
+### 6.7 Frontend Tests (TIER 2 - MODERATE VALUE)
+
+**File: `/web/src/App.test.tsx`**
+
+- [ ] Test component rendering
+  - [ ] App renders without crashing
+  - [ ] Shows "No nodes found" when scan returns empty
+  - [ ] PendulumCanvas renders SVG element
+
+- [ ] Test node discovery (mocked)
+  - [ ] Mock scanForNodes to return 3 nodes
+  - [ ] Verify NodeList shows 3 items
+  - [ ] Verify node IDs displayed correctly
+
+- [ ] Test controls (mocked)
+  - [ ] Mock fetch for POST /start
+  - [ ] Click "Start All" → fetch called 3 times (once per node)
+  - [ ] Mock fetch to fail for one node
+  - [ ] Verify partial failure shown in UI
+
+**File: `/web/src/services/nodeDiscovery.test.ts`**
+
+- [ ] Test scanForNodes (mocked fetch)
+  - [ ] Mock fetch to succeed on 7700, 7701, fail on 7702+
+  - [ ] Verify scan stops after 10 consecutive misses
+  - [ ] Verify returned nodes have correct shape
+
+- [ ] Test pollNodeStates (mocked fetch)
+  - [ ] Mock fetch to return different states
+  - [ ] Verify callback called with updated states
+  - [ ] Verify cleanup function stops polling
+
+**Expected runtime:** ~3-5 seconds for all frontend tests
+
+### 6.8 Test Execution & CI
+
+- [ ] Add root-level test script
+  - [ ] `"test": "cd nodes && npm test && cd ../web && npm test"`
+
+- [ ] Add test coverage reporting (optional)
+  - [ ] Configure vitest to output coverage
+  - [ ] Set coverage threshold (e.g., 70% for backend, 50% for frontend)
+
+- [ ] Document how to run tests in README
+  - [ ] `npm test` - run all tests
+  - [ ] `npm run test:nodes` - run backend tests only
+  - [ ] `npm run test:web` - run frontend tests only
+  - [ ] `npm run test:watch` - run in watch mode during development
 
 **Testable outcome:**
-- `npm run dev` starts 5 nodes + web UI with one command
-- All tests pass: `npm test`
-- README clearly explains how to run, test, and understand the system
-- A new developer can clone and run the project in under 5 minutes
-- Graceful shutdown works (Ctrl+C stops all processes cleanly)
+- Running `npm test` executes ~30-40 tests in ~15-20 seconds total
+- All tests pass with clear output
+- Tests catch regressions in physics, API, and coordination logic
+- Multi-node tests demonstrate distributed behavior works correctly
+
+---
+
+## Section 7: Final Polish & Spec Verification
+
+**Goal:** Make the project easy to run and review, improve error handling and UI feedback, then verify that the implementation satisfies every mandatory requirement in `spec.md`.
+
+### 7.1 Repeatable Local Startup
+
+- [ ] Create `scripts/start-demo.sh`
+  - [ ] Use `#!/usr/bin/env bash`
+  - [ ] Use `set -euo pipefail`
+  - [ ] Start five node processes from `/nodes`
+  - [ ] Start the web UI from `/web`
+  - [ ] Store child process IDs
+  - [ ] Add a `trap` for `INT` and `TERM` that stops all child processes cleanly
+  - [ ] Wait for child processes so the script remains active while the demo runs
+  - [ ] Print the expected UI URL and a short shutdown instruction
+
+- [ ] Keep startup assumptions simple
+  - [ ] Each node independently claims the next available port beginning at `7700`
+  - [ ] Do not introduce a root-level package.json solely for orchestration
+  - [ ] Do not add `concurrently`, Docker, or Windows-specific startup scripts
+  - [ ] Document the shell script as a convenience for local development and manual testing
+
+**Testable outcome:**
+- Running `./scripts/start-demo.sh` starts five node processes and the web UI
+- Pressing `Ctrl+C` stops the child processes without leaving node servers running
+- The web UI discovers the nodes through its normal port-scan behavior
+
+### 7.2 Error Handling & Logging
+
+- [ ] Add graceful node shutdown
+  - [ ] Handle `SIGINT` and `SIGTERM`
+  - [ ] Stop timers and close the HTTP server
+  - [ ] Log a concise shutdown message
+  - [ ] Exit successfully after cleanup
+
+- [ ] Improve API errors
+  - [ ] Return `400` for malformed or invalid configuration input
+  - [ ] Include a clear, safe validation message such as `{ "error": "length must be between 0.05 and 100" }`
+  - [ ] Return `404` for unknown endpoints
+  - [ ] Log unexpected internal errors server-side without exposing stack traces to the UI
+
+- [ ] Keep terminal logging useful but concise
+  - [ ] Log startup, selected port, node ID, and initial configuration
+  - [ ] Log peer joins, removals, leader changes, collisions, STOP, and RESTART transitions
+  - [ ] Avoid per-tick or per-position-message logging by default
+
+**Testable outcome:**
+- Invalid configuration requests receive understandable `400` responses
+- Stopping a node process cleans up without uncaught errors
+- Terminal output is sufficient to follow membership and coordination behavior during a demo
+
+### 7.3 UI Feedback & Accessibility
+
+- [ ] Add lightweight loading and error feedback
+  - [ ] Show an initial “Scanning for nodes…” state
+  - [ ] Clearly show when no reachable nodes were discovered
+  - [ ] Mark unreachable nodes separately from nodes that are reachable but stopped or paused
+  - [ ] Display configuration-update failures and partial group-action failures
+  - [ ] Display reported collision/restart state from nodes
+
+- [ ] Apply minimal responsive and accessible styling
+  - [ ] Keep the SVG visualization usable at typical laptop widths
+  - [ ] Ensure controls remain usable on narrower viewports
+  - [ ] Add labels to inputs and accessible names to buttons
+  - [ ] Ensure keyboard users can select a node, edit values, apply configuration, and invoke controls
+  - [ ] Do not rely solely on color to convey node lifecycle state
+
+**Testable outcome:**
+- The UI distinguishes discovery, reachability, lifecycle, configuration, and group-action errors
+- Core flows are usable with keyboard navigation
+- A node going down appears as unreachable rather than incorrectly as paused or stopped
+
+### 7.4 README
+
+- [ ] Update the root `README.md` with only practical project-level information
+  - [ ] Brief project description
+  - [ ] Prerequisites
+  - [ ] Install instructions for `/nodes` and `/web`
+  - [ ] How to run one node manually
+  - [ ] How to run the web UI manually
+  - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo
+  - [ ] How to run backend and frontend tests
+  - [ ] Short pointers to `interfaces.md`, `coordination.md`, and `physics.md` for implementation and design details
+  - [ ] Brief known limitations, such as single-host-only operation and latest-known-state collision detection
+
+- [ ] Keep detailed documentation in the dedicated files
+  - [ ] CLI/UI behavior and HTTP interaction: `interfaces.md`
+  - [ ] Membership, leadership, ordering, liveness, and STOP/RESTART behavior: `coordination.md`
+  - [ ] Motion, geometry, timing, and collision math: `physics.md`
+  - [ ] Do not duplicate those documents’ detailed contracts in the README
+  - [ ] Do not add architecture diagrams unless they become necessary
+
+**Testable outcome:**
+- A reviewer can install, run, stop, and test the project using the README
+- A reviewer can quickly find detailed implementation decisions in the dedicated Markdown files
+
+### 7.5 Original Spec Verification
+
+- [ ] Verify server-side simulation requirements
+  - [ ] Each Node.js process owns exactly one pendulum simulation
+  - [ ] Initial angle, mass, and string length are configurable
+  - [ ] Five independent node instances run successfully together
+  - [ ] The design is not hard-coded to exactly five nodes
+
+- [ ] Verify neighbor communication requirements
+  - [ ] Nodes discover and track peers on the local host
+  - [ ] Nodes share their positions with peers
+  - [ ] Collision detection uses a defined bob-to-bob threshold
+  - [ ] A detected collision is reported to the leader
+  - [ ] The leader sends STOP to the active cluster
+  - [ ] Nodes halt their local physics simulation after valid STOP
+  - [ ] The RESTART barrier behaves according to the chosen coordination contract
+  - [ ] Nodes wait five seconds after the restart barrier before resuming
+  - [ ] Duplicate, stale, and out-of-order protocol messages do not break coordination
+  - [ ] A stopped or failed peer does not crash the surviving nodes
+
+- [ ] Verify web UI requirements
+  - [ ] React renders every discovered pendulum
+  - [ ] The UI reads current node configuration before simulation start
+  - [ ] The UI supports per-node configuration of angle, mass, length, and hinge position
+  - [ ] The UI exposes group Start, Pause, and Stop controls
+  - [ ] The UI updates visible state through periodic HTTP polling
+  - [ ] The UI reports partial failures for group actions
+  - [ ] The UI remains a client/controller; it does not become an authoritative simulator or coordinator
+
+- [ ] Verify code quality and submission requirements
+  - [ ] TypeScript is used consistently in nodes and web UI
+  - [ ] Automated tests cover physics, configuration validation, REST API behavior, and core coordination paths
+  - [ ] The test suite includes at least one real multi-process node-failure scenario
+  - [ ] Errors are handled clearly at API and UI boundaries
+  - [ ] README explains install, run, test, key trade-offs, and known limitations
+  - [ ] Repository excludes generated artifacts and dependencies via `.gitignore`
+  - [ ] Final repository is ready to share on GitHub
+
+**Testable outcome:**
+- A final manual walkthrough and the automated suite demonstrate every mandatory `spec.md` requirement.
+
+---
+
+## Section 8: Bonus Goals
+
+**Goal:** Consider optional enhancements only after all mandatory requirements, tests, and final spec verification are complete.
+
+- [ ] Decide which bonus goals are worthwhile given remaining time
+- [ ] Intuitive configuration UX
+- [ ] TypeScript on frontend and backend
+- [ ] Single-command local startup
+- [ ] Additional REST API and node-logic tests
+- [ ] Additional engineering improvements that demonstrate judgment
+- [ ] Wind simulation only if its scope is explicitly reconsidered
 
 ---
 
