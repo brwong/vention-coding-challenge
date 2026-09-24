@@ -722,28 +722,28 @@ These tests verify the core physics calculations. They're pure functions with no
 
 **File: `/nodes/src/protocol.test.ts`**
 
-- [ ] Test term filtering
-  - [ ] Receive STOP with term=3, current term=5 → ignore, state unchanged
-  - [ ] Receive STOP with term=6, current term=5 → accept, update term to 6, stop
-  - [ ] Receive RESTART with term=5, current term=5 → accept, add to barrier
-  - [ ] Receive RESTART with term=4, current term=5 → ignore
+- [x] Test term filtering
+  - [x] Receive STOP with term=3, current term=5 → ignore, state unchanged
+  - [x] Receive STOP with term=6, current term=5 → accept, update term to 6, stop
+  - [x] Receive RESTART with term=5, current term=5 → accept, add to barrier
+  - [x] Receive RESTART with term=4, current term=5 → ignore
 
-- [ ] Test lifecycle state machine
-  - [ ] Start in 'running', receive STOP → transition to 'stopped'
-  - [ ] In 'stopped', receive RESTART from 4/5 nodes → transition to 'restarting', start 5s timer
-  - [ ] After 5s timer → transition to 'running', reset pendulum
-  - [ ] In 'running', receive RESTART → ignore (only valid in 'stopped')
-  - [ ] In 'restarting', receive STOP with higher term → transition to 'stopped', cancel timer
+- [x] Test lifecycle state machine
+  - [x] Start in 'running', receive STOP → transition to 'stopped'
+  - [x] In 'stopped', receive RESTART from every live node → transition to 'restarting', start 5s timer
+  - [x] After 5s timer → transition to 'running', reset pendulum
+  - [x] In 'running', receive RESTART for an already completed term → ignore
+  - [x] In 'restarting', receive STOP with higher term → transition to 'stopped', cancel timer
 
-- [ ] Test quorum calculation
-  - [ ] 5 nodes, receive 4 RESTARTs → barrier satisfied
-  - [ ] 5 nodes, receive 3 RESTARTs → barrier not satisfied
-  - [ ] 3 nodes (2 dead), receive 2 RESTARTs → barrier satisfied (quorum adjusts)
+- [x] Test quorum calculation
+  - [x] 5 live nodes, receive 5 RESTARTs → barrier satisfied
+  - [x] 5 live nodes, receive 4 RESTARTs → barrier not satisfied
+  - [x] 5 nodes (2 suspected dead), receive 3 RESTARTs → barrier satisfied (quorum adjusts)
 
-- [ ] Test collision detection logic
-  - [ ] Two pendulums at same angle, same length, same anchor → collision detected
-  - [ ] Two pendulums at different angles → no collision
-  - [ ] Two pendulums with anchors far apart → no collision even at same angle
+- [x] Test collision detection logic
+  - [x] Two pendulums at same angle, same length, same anchor → collision detected
+  - [x] Two pendulums at different angles → no collision
+  - [x] Two pendulums with anchors far apart → no collision even at same angle
 
 **Expected runtime:** < 500ms for all protocol tests
 
