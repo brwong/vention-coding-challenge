@@ -697,24 +697,24 @@ These tests verify the core physics calculations. They're pure functions with no
 
 **File: `/nodes/src/config.test.ts`**
 
-- [ ] Test CLI argument parsing
-  - [ ] `--angle 45` → config.angle === 45
-  - [ ] `--length 200 --mass 2` → both values parsed correctly
-  - [ ] `--x 100 --angle -30` → negative angle accepted
-  - [ ] No flags → defaults: length=150, mass=1, angle=20
-  - [ ] `--help` → prints help message, exits cleanly
+- [x] Test CLI argument parsing
+  - [x] `--angle 45` → config.angle === 45
+  - [x] `--length 200 --mass 2000` → both values parsed correctly
+  - [x] `--x 100 --angle -30` → negative angle accepted
+  - [x] No flags → defaults: length=100, mass=4200, angle=20
+  - [x] `--help` → returns null so the node prints usage and exits cleanly
 
-- [ ] Test validation
-  - [ ] `--length -10` → error/rejected (negative length)
-  - [ ] `--mass 0` → error/rejected (zero mass)
-  - [ ] `--angle 200` → error/rejected (out of range, > 180)
-  - [ ] `--angle abc` → error/rejected (non-numeric)
-  - [ ] `--length Infinity` → error/rejected (not finite)
+- [x] Test validation
+  - [x] `--length -10` → error/rejected (negative length)
+  - [x] `--mass 0` → error/rejected (zero mass)
+  - [x] `--angle 200` → error/rejected (out of range, > 180)
+  - [x] `--angle abc` → error/rejected (non-numeric)
+  - [x] `--length Infinity` → error/rejected (not finite)
 
-- [ ] Test port auto-discovery (mocked)
-  - [ ] Mock `createServer` to fail on 7700, succeed on 7701 → binds to 7701
-  - [ ] Mock `createServer` to fail on 7700-7705, succeed on 7706 → binds to 7706
-  - [ ] Verify nodeId is generated correctly: port 7703 → "node-7703"
+- [x] Test port auto-discovery (mocked)
+  - [x] Mock `createServer` to fail on 7700, succeed on 7701 → binds to 7701
+  - [x] Mock `createServer` to fail on 7700-7705, succeed on 7706 → binds to 7706
+  - [x] Verify nodeId is generated correctly: port 7703 → "node-7703"
 
 **Expected runtime:** < 500ms for all config tests
 
