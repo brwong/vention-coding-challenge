@@ -72,3 +72,18 @@ cd web
 npm install
 npm run dev
 ```
+
+## Running the tests
+
+Install dependencies in both `nodes` and `web` first, then from the repository root:
+
+```sh
+npm test                # all tests: node servers, then web UI
+npm run test:nodes      # node server tests only
+npm run test:web        # web UI tests only
+npm run test:coverage   # all tests with coverage reports and minimum thresholds
+```
+
+For watch mode during development, run `npm run test:watch` inside `nodes` or `web`.
+
+The node tests include multi-process coordination tests that start real nodes on ports `7700` and up, so stop any running nodes first. They take about 30 seconds, most of it waiting out the 10-second peer timeout.

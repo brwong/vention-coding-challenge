@@ -1,0 +1,11 @@
+{
+  "name": "vention-pendulum",
+  "private": true,
+  "description": "Test scripts for the node servers and the web UI; each has its own dependencies",
+  "scripts": {
+    "test": "npm run test:nodes && npm run test:web",
+    "test:nodes": "npm --prefix nodes test",
+    "test:web": "npm --prefix web test",
+    "test:coverage": "npm --prefix nodes run test:coverage && npm --prefix web run test:coverage"
+  }
+}

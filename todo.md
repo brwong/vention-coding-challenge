@@ -892,18 +892,18 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 6.8 Test Execution & CI
 
-- [ ] Add root-level test script
-  - [ ] `"test": "cd nodes && npm test && cd ../web && npm test"`
+- [x] Add root-level test script
+  - [x] `"test": "npm run test:nodes && npm run test:web"` in a private root package.json holding only test scripts
 
-- [ ] Add test coverage reporting (optional)
-  - [ ] Configure vitest to output coverage
-  - [ ] Set coverage threshold (e.g., 70% for backend, 50% for frontend)
+- [x] Add test coverage reporting (optional)
+  - [x] Configure vitest to output coverage
+  - [x] Set coverage threshold (70% for backend with 65% branches, 50% for frontend)
 
-- [ ] Document how to run tests in README
-  - [ ] `npm test` - run all tests
-  - [ ] `npm run test:nodes` - run backend tests only
-  - [ ] `npm run test:web` - run frontend tests only
-  - [ ] `npm run test:watch` - run in watch mode during development
+- [x] Document how to run tests in README
+  - [x] `npm test` - run all tests
+  - [x] `npm run test:nodes` - run backend tests only
+  - [x] `npm run test:web` - run frontend tests only
+  - [x] `npm run test:watch` (inside `nodes` or `web`) - run in watch mode during development
 
 **Testable outcome:**
 - Running `npm test` executes ~30-40 tests in ~15-20 seconds total
