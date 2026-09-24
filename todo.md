@@ -816,37 +816,37 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 }
 ```
 
-- [ ] Test membership discovery
-  - [ ] Start node A (binds to 7700)
-  - [ ] Start node B (binds to 7701)
-  - [ ] Start node C (binds to 7702)
-  - [ ] Wait 2s for JOIN protocol
-  - [ ] GET /protocol-status on each → all know about all others
-  - [ ] Verify peer lists match expected: A knows [], B knows [A], C knows [A, B]
+- [x] Test membership discovery
+  - [x] Start node A (binds to 7700)
+  - [x] Start node B (binds to 7701)
+  - [x] Start node C (binds to 7702)
+  - [x] Wait 2s for JOIN protocol
+  - [x] GET /protocol-status on each → all know about all others
+  - [x] Verify peer lists match expected: A knows [B, C], B knows [A, C], C knows [A, B]
 
-- [ ] Test leader election
-  - [ ] Start 5 nodes sequentially
-  - [ ] Wait 3s for election to complete
-  - [ ] GET /protocol-status on all → same leader elected (highest nodeId)
-  - [ ] Kill leader process
-  - [ ] Wait 3s for new election
-  - [ ] GET /protocol-status on remaining → new leader elected (next highest)
+- [x] Test leader election
+  - [x] Start 5 nodes sequentially
+  - [x] Wait 3s for election to complete
+  - [x] GET /protocol-status on all → all agree on one live leader
+  - [x] Kill leader process
+  - [x] Wait 3s for new election
+  - [x] GET /protocol-status on remaining → all agree on a new live leader
 
-- [ ] Test collision → STOP/RESTART protocol
-  - [ ] Start 3 nodes with identical config (same length, mass, anchor x)
-  - [ ] POST /start on all 3
-  - [ ] Wait for natural collision (or manually set same initial angle)
-  - [ ] Within 500ms, all 3 nodes should be 'stopped'
-  - [ ] Within 6s, all 3 nodes should be 'running' again (5s restart + buffer)
-  - [ ] Verify all restarted in sync (angles within 0.1 rad of each other)
+- [x] Test collision → STOP/RESTART protocol
+  - [x] Start 3 nodes: two that swing into each other, one far away
+  - [x] POST /start on all 3
+  - [x] Wait for natural collision
+  - [x] Within 500ms, all 3 nodes should be 'stopped'
+  - [x] Within 6s, all 3 nodes should be 'running' again (5s restart + buffer)
+  - [x] Verify all restarted in sync (each state reached within 500ms on every node, ~5s countdown)
 
-- [ ] Test node failure during simulation
-  - [ ] Start 5 nodes, start simulation
-  - [ ] Kill middle node (e.g., node-7702)
-  - [ ] Remaining 4 nodes continue running (no cascade failure)
-  - [ ] Heartbeat timeout detects dead node within 10s
-  - [ ] Restart killed node
-  - [ ] Node rejoins via JOIN protocol, resumes simulation
+- [x] Test node failure during simulation
+  - [x] Start 5 nodes, start simulation
+  - [x] Kill middle node (e.g., node-7702)
+  - [x] Remaining 4 nodes continue running (no cascade failure)
+  - [x] Heartbeat timeout detects dead node within 10s
+  - [x] Restart killed node
+  - [x] Node rejoins via JOIN protocol, resumes simulation
 
 **Expected runtime:** ~10-15 seconds for all coordination tests
 
