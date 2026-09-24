@@ -15,6 +15,7 @@ export interface CoordinationState {
   lifecycle: Lifecycle;
   leaderId: string | null;
   restartBarrier: Set<string>; // nodes that sent RESTART for the current stop
+  awaitingRestart: boolean; // stopped by the protocol and the RESTART barrier is still open
   quorumSize: number; // RESTART senders needed before the countdown starts
 }
 
@@ -51,6 +52,7 @@ export class ProtocolService {
       lifecycle: this.simulation.lifecycle,
       leaderId: this.election.leaderId,
       restartBarrier: new Set(this.restartBarrier),
+      awaitingRestart: this.stoppedTerm > this.restartedTerm,
       quorumSize: this.quorumSize,
     };
   }

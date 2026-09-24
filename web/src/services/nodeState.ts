@@ -3,6 +3,8 @@ import { type NodeInfo, nodeUrl } from './nodeDiscovery'
 export const RUNNING_POLL_INTERVAL_MS = 100
 export const IDLE_POLL_INTERVAL_MS = 1000
 export const STATUS_TIMEOUT_MS = 1000
+// Coordination changes are slower than the swing, and the barrier lasts seconds.
+export const PROTOCOL_POLL_INTERVAL_MS = 500
 
 export type Lifecycle = 'ready' | 'running' | 'paused' | 'stopped' | 'restarting'
 
@@ -38,6 +40,63 @@ export async function fetchNodeStatus(port: number): Promise<PendulumStatus> {
   return response.json()
 }
 
+/** The fields the UI uses from a node's GET /protocol-status response. */
+export interface ProtocolStatus {
+  nodeId: string
+  term: number
+  leader: string | null
+  isLeader: boolean
+  lifecycle: Lifecycle
+  restartBarrier: string[] // nodes this one has heard RESTART from
+  awaitingRestart: boolean // stopped by a collision and still collecting RESTARTs
+  quorumSize: number // RESTARTs needed before the restart countdown
+}
+
+export async function fetchProtocolStatus(port: number): Promise<ProtocolStatus> {
+  const response = await fetch(nodeUrl(port, '/protocol-status'), {
+    signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    throw new Error(`GET /protocol-status on port ${port} failed with ${response.status}`)
+  }
+  return response.json()
+}
+
+/**
+ * Fetches from every active node, hands the successes (keyed by nodeId) to
+ * the callback, and repeats after `nextDelay` of those results. Returns a
+ * function that stops polling.
+ */
+function pollActiveNodes<T extends { nodeId: string }>(
+  nodes: NodeInfo[],
+  fetcher: (port: number) => Promise<T>,
+  callback: (results: Map<string, T>) => void,
+  nextDelay: (results: Map<string, T>) => number,
+): () => void {
+  const active = nodes.filter((node) => node.status === 'active')
+  let stopped = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  // Chain timeouts rather than use setInterval so slow polls never overlap.
+  const run = async () => {
+    const settled = await Promise.allSettled(active.map((node) => fetcher(node.port)))
+    if (stopped) return
+
+    const results = new Map<string, T>()
+    for (const result of settled) {
+      if (result.status === 'fulfilled') results.set(result.value.nodeId, result.value)
+    }
+    callback(results)
+    timer = setTimeout(run, nextDelay(results))
+  }
+  run()
+
+  return () => {
+    stopped = true
+    clearTimeout(timer)
+  }
+}
+
 /**
  * Polls /status on every active node. Polls every `intervalMs` while any node
  * is running and every IDLE_POLL_INTERVAL_MS otherwise. The callback gets the
@@ -49,30 +108,18 @@ export function pollNodeStates(
   intervalMs: number,
   callback: (statuses: Map<string, PendulumStatus>) => void,
 ): () => void {
-  const active = nodes.filter((node) => node.status === 'active')
-  let stopped = false
-  let timer: ReturnType<typeof setTimeout> | undefined
-
-  // Chain timeouts rather than use setInterval so slow polls never overlap.
-  const run = async () => {
-    const results = await Promise.allSettled(active.map((node) => fetchNodeStatus(node.port)))
-    if (stopped) return
-
-    const statuses = new Map<string, PendulumStatus>()
-    for (const result of results) {
-      if (result.status === 'fulfilled') statuses.set(result.value.nodeId, result.value)
-    }
-    callback(statuses)
-
+  return pollActiveNodes(nodes, fetchNodeStatus, callback, (statuses) => {
     const anyRunning = [...statuses.values()].some((status) => status.lifecycle === 'running')
-    timer = setTimeout(run, anyRunning ? intervalMs : IDLE_POLL_INTERVAL_MS)
-  }
-  run()
+    return anyRunning ? intervalMs : IDLE_POLL_INTERVAL_MS
+  })
+}
 
-  return () => {
-    stopped = true
-    clearTimeout(timer)
-  }
+/** Polls /protocol-status on every active node every PROTOCOL_POLL_INTERVAL_MS. */
+export function pollProtocolStates(
+  nodes: NodeInfo[],
+  callback: (protocols: Map<string, ProtocolStatus>) => void,
+): () => void {
+  return pollActiveNodes(nodes, fetchProtocolStatus, callback, () => PROTOCOL_POLL_INTERVAL_MS)
 }
 
 export type LifecycleCommand = 'start' | 'pause' | 'stop'

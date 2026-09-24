@@ -593,9 +593,9 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 5.4 Lifecycle State Display
 
-- [ ] Extend `src/components/NodeList.tsx` or create `src/components/LifecycleIndicator.tsx`
-  - [ ] Show lifecycle state: running (green), paused (yellow), stopped (red), restarting (orange)
-  - [ ] Show coordination state if available: "Waiting for RESTART (3/5)", "Leader: node-7700"
+- [x] Extend `src/components/NodeList.tsx` or create `src/components/LifecycleIndicator.tsx`
+  - [x] Show lifecycle state: running (green), paused (yellow), stopped (red), restarting (orange)
+  - [x] Show coordination state if available: "Waiting for RESTART (3/5)", "Leader: node-7700"
 
 ### 5.5 Improved UX
 

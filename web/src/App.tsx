@@ -9,9 +9,11 @@ import {
   type LifecycleCommand,
   type PendulumConfig,
   type PendulumStatus,
+  type ProtocolStatus,
   RUNNING_POLL_INTERVAL_MS,
   applyConfig,
   pollNodeStates,
+  pollProtocolStates,
   sendCommand,
 } from './services/nodeState'
 
@@ -42,6 +44,7 @@ function App() {
   const [nodes, setNodes] = useState<NodeInfo[]>([])
   const [scanned, setScanned] = useState(false)
   const [statuses, setStatuses] = useState(new Map<string, PendulumStatus>())
+  const [protocols, setProtocols] = useState(new Map<string, ProtocolStatus>())
   const [lastUpdated, setLastUpdated] = useState(new Map<string, number>())
   const [selectedNodeId, setSelectedNodeId] = useState<string>()
   // Unapplied edits, shared by the form and the canvas. They belong to one node
@@ -80,7 +83,14 @@ function App() {
     [nodes, pollKey],
   )
 
+  useEffect(() => pollProtocolStates(nodes, setProtocols), [nodes])
+
   const activeNodes = nodes.filter((node) => node.status === 'active')
+  // Nodes that missed the latest election may name an old leader; trust the newest term.
+  const newest = [...protocols.values()].reduce<ProtocolStatus | undefined>(
+    (best, protocol) => (best && best.term >= protocol.term ? best : protocol),
+    undefined,
+  )
 
   async function runGroupCommand(command: LifecycleCommand) {
     setBusy(true)
@@ -171,6 +181,11 @@ function App() {
             Refresh Nodes
           </button>
         </div>
+        {newest && (
+          <p className="leader">
+            {newest.leader ? `Leader: ${newest.leader}` : 'No leader elected'} (term {newest.term})
+          </p>
+        )}
         {actionMessage && (
           <p className="action-message" role="status">
             {actionMessage}
@@ -194,6 +209,7 @@ function App() {
             <NodeList
               nodes={nodes}
               statuses={statuses}
+              protocols={protocols}
               lastUpdated={lastUpdated}
               selectedNodeId={selected}
               busyNodeIds={busyNodeIds}

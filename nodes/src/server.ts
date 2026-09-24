@@ -122,7 +122,7 @@ export function createApp(
 
   app.get("/protocol-status", (_req, res) => {
     const { membership, election, position, protocol } = services;
-    const { lifecycle, restartBarrier, quorumSize } = protocol.state;
+    const { lifecycle, restartBarrier, awaitingRestart, quorumSize } = protocol.state;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
@@ -131,6 +131,7 @@ export function createApp(
       isLeader: election.isLeader,
       lifecycle,
       restartBarrier: [...restartBarrier],
+      awaitingRestart,
       quorumSize,
       peers: [...membership.peers.values()].map((peer) => ({
         nodeId: peer.nodeId,

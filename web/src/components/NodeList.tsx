@@ -1,6 +1,7 @@
-import { LIFECYCLE_COLORS, UNREACHABLE_COLOR, nodeColor } from '../pendulum'
+import { nodeColor } from '../pendulum'
 import type { NodeInfo } from '../services/nodeDiscovery'
-import type { LifecycleCommand, PendulumStatus } from '../services/nodeState'
+import type { LifecycleCommand, PendulumStatus, ProtocolStatus } from '../services/nodeState'
+import { LifecycleIndicator } from './LifecycleIndicator'
 
 const NODE_COMMANDS: { command: LifecycleCommand; label: string }[] = [
   { command: 'start', label: 'Start' },
@@ -11,6 +12,7 @@ const NODE_COMMANDS: { command: LifecycleCommand; label: string }[] = [
 interface Props {
   nodes: NodeInfo[]
   statuses: Map<string, PendulumStatus>
+  protocols: Map<string, ProtocolStatus>
   lastUpdated: Map<string, number>
   selectedNodeId?: string
   // Nodes with a command in flight; their buttons are disabled until it settles.
@@ -26,6 +28,7 @@ function formatTime(timestamp: number | undefined): string {
 export function NodeList({
   nodes,
   statuses,
+  protocols,
   lastUpdated,
   selectedNodeId,
   busyNodeIds,
@@ -48,8 +51,6 @@ export function NodeList({
       <tbody>
         {nodes.map((node) => {
           const status = statuses.get(node.nodeId)
-          const state = status?.lifecycle ?? 'unreachable'
-          const stateColor = status ? LIFECYCLE_COLORS[status.lifecycle] : UNREACHABLE_COLOR
           const disabled = !status || busyNodeIds.has(node.nodeId)
           return (
             <tr
@@ -62,7 +63,9 @@ export function NodeList({
                 {node.nodeId}
               </td>
               <td className="muted">{node.port}</td>
-              <td style={{ color: stateColor }}>{state}</td>
+              <td>
+                <LifecycleIndicator status={status} protocol={protocols.get(node.nodeId)} />
+              </td>
               <td className="muted">{formatTime(lastUpdated.get(node.nodeId))}</td>
               <td className="node-actions">
                 {NODE_COMMANDS.map(({ command, label }) => (

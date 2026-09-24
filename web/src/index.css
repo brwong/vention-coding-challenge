@@ -251,3 +251,35 @@ button.selected {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.leader {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+}
+
+.lifecycle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+}
+
+.lifecycle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.lifecycle-detail {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+}
