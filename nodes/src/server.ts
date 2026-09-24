@@ -1,6 +1,7 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import { ConfigError, parseConfigUpdate } from "./config";
+import type { ElectionService } from "./services/electionService";
 import type { MembershipService } from "./services/membershipService";
 import { type Message, MessageError, parseMessage, senderOf } from "./services/messages";
 import type { PendulumConfig, Simulation } from "./simulation";
@@ -12,6 +13,7 @@ export interface NodeIdentity {
 
 export interface Services {
   membership: MembershipService;
+  election: ElectionService;
 }
 
 // Nodes only listen on loopback, so accept the web UI from any local port.
@@ -31,10 +33,16 @@ async function routeMessage(message: Message, services: Services): Promise<objec
   switch (message.type) {
     case "JOIN":
       return services.membership.handleJoin(message);
-    default:
-      // HEARTBEAT only proves liveness, which /message records for every sender.
-      return { accepted: true };
+    case "HEARTBEAT":
+      services.election.handleHeartbeat(message);
+      break;
+    case "ELECTION_REQUEST":
+      return services.election.handleElectionRequest(message);
+    case "ELECTION_RESPONSE":
+      services.election.handleElectionResponse(message);
+      break;
   }
+  return { accepted: true };
 }
 
 export function createApp(
@@ -93,12 +101,13 @@ export function createApp(
   });
 
   app.get("/protocol-status", (_req, res) => {
-    const { membership } = services;
+    const { membership, election } = services;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
-      term: 0,
-      leader: null,
+      term: election.currentTerm,
+      leader: election.leaderId,
+      isLeader: election.isLeader,
       peers: [...membership.peers.values()].map((peer) => ({
         nodeId: peer.nodeId,
         port: peer.port,

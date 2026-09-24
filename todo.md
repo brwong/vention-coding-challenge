@@ -395,8 +395,8 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.2 Leader Election
 
-- [ ] Create `src/services/electionService.ts`
-  - [ ] Define state:
+- [x] Create `src/services/electionService.ts`
+  - [x] Define state:
     ```ts
     interface ElectionState {
       currentTerm: number;
@@ -405,22 +405,22 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
       votedFor: string | null;
     }
     ```
-  - [ ] Implement `startElection(myNodeId: string, peers: Peer[]): Promise<string>`
-    - [ ] Increment term
-    - [ ] Send `ELECTION_REQUEST` to all peers with higher node IDs
-    - [ ] Collect votes (peers vote for higher ID)
-    - [ ] If win majority, become leader
-    - [ ] Return leader nodeId
-  - [ ] Implement `handleElectionRequest(message: any, myNodeId: string, currentTerm: number): ELECTION_RESPONSE`
-    - [ ] Vote for higher nodeId in same or higher term
-    - [ ] Update term if message has higher term
-  - [ ] Implement `handleElection_response(message: any): void`
-    - [ ] Record vote
-  - [ ] Implement `sendHeartbeat(myNodeId: string, term: number, peers: Peer[]): Promise<void>`
-    - [ ] Broadcast `HEARTBEAT` with `isLeader: true`
-  - [ ] Implement `handleHeartbeat(message: any): void`
-    - [ ] If from leader with higher/equal term, update `leaderId` and reset election timeout
-    - [ ] If term is higher, update current term and step down if I was leader
+  - [x] Implement `startElection(myNodeId: string, peers: Peer[]): Promise<string>`
+    - [x] Increment term
+    - [x] Send `ELECTION_REQUEST` to all peers with higher node IDs
+    - [x] Collect votes (peers vote for higher ID)
+    - [x] If win majority, become leader
+    - [x] Return leader nodeId
+  - [x] Implement `handleElectionRequest(message: any, myNodeId: string, currentTerm: number): ELECTION_RESPONSE`
+    - [x] Vote for higher nodeId in same or higher term
+    - [x] Update term if message has higher term
+  - [x] Implement `handleElection_response(message: any): void`
+    - [x] Record vote
+  - [x] Implement `sendHeartbeat(myNodeId: string, term: number, peers: Peer[]): Promise<void>`
+    - [x] Broadcast `HEARTBEAT` with `isLeader: true`
+  - [x] Implement `handleHeartbeat(message: any): void`
+    - [x] If from leader with higher/equal term, update `leaderId` and reset election timeout
+    - [x] If term is higher, update current term and step down if I was leader
 
 ### 4.3 Position Sharing
 

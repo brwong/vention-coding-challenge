@@ -1,6 +1,7 @@
 import { ConfigError, USAGE, loadConfig } from "./config";
 import { HEARTBEAT_INTERVAL_MS } from "./constants";
 import { createApp } from "./server";
+import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
 import { Simulation } from "./simulation";
 import { logStartup, startStatusLogger } from "./terminal";
@@ -20,19 +21,22 @@ async function main(): Promise<void> {
     const { x, length, mass } = simulation.config;
     return { x, length, mass };
   });
-  server.on("request", createApp({ nodeId, port }, simulation, { membership }));
+  const election = new ElectionService(nodeId, membership);
+  server.on("request", createApp({ nodeId, port }, simulation, { membership, election }));
   simulation.startLoop();
 
   logStartup(config);
   await membership.probeLowerPorts();
   const stopHeartbeat = membership.startHeartbeat(
-    () => ({ type: "HEARTBEAT", nodeId, term: 0, isLeader: false }),
+    () => election.heartbeat(),
     HEARTBEAT_INTERVAL_MS,
   );
+  const stopElectionTimer = election.startElectionTimer();
   const stopStatusLogger = startStatusLogger(nodeId, simulation);
 
   const shutdown = () => {
     stopHeartbeat();
+    stopElectionTimer();
     stopStatusLogger();
     simulation.stopLoop();
     server.close();

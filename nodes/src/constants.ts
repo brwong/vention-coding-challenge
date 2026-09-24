@@ -30,3 +30,6 @@ export const MESSAGE_TIMEOUT_MS = 500; // give up on a peer request after this l
 export const HEARTBEAT_INTERVAL_MS = 500;
 export const PEER_SUSPECT_MS = 2000; // silent this long: suspected dead
 export const PEER_TIMEOUT_MS = 10000; // silent this long: removed from the peer list
+export const ELECTION_TIMEOUT_MS = 2000; // no leader heartbeat this long: start an election
+export const ELECTION_JITTER_MS = 500; // random extra wait so followers rarely run at once
+export const ELECTION_CHECK_INTERVAL_MS = 100;
