@@ -63,14 +63,14 @@ export async function fetchProtocolStatus(port: number): Promise<ProtocolStatus>
 }
 
 /**
- * Fetches from every active node, hands the successes (keyed by nodeId) to
- * the callback, and repeats after `nextDelay` of those results. Returns a
+ * Fetches from every active node, hands the successes (keyed by nodeId) and
+ * the IDs of the nodes that failed to the callback, and repeats after `nextDelay` of those results. Returns a
  * function that stops polling.
  */
 function pollActiveNodes<T extends { nodeId: string }>(
   nodes: NodeInfo[],
   fetcher: (port: number) => Promise<T>,
-  callback: (results: Map<string, T>) => void,
+  callback: (results: Map<string, T>, failed: Set<string>) => void,
   nextDelay: (results: Map<string, T>) => number,
 ): () => void {
   const active = nodes.filter((node) => node.status === 'active')
@@ -83,10 +83,12 @@ function pollActiveNodes<T extends { nodeId: string }>(
     if (stopped) return
 
     const results = new Map<string, T>()
-    for (const result of settled) {
+    const failed = new Set<string>()
+    settled.forEach((result, i) => {
       if (result.status === 'fulfilled') results.set(result.value.nodeId, result.value)
-    }
-    callback(results)
+      else failed.add(active[i].nodeId)
+    })
+    callback(results, failed)
     timer = setTimeout(run, nextDelay(results))
   }
   run()
@@ -100,13 +102,13 @@ function pollActiveNodes<T extends { nodeId: string }>(
 /**
  * Polls /status on every active node. Polls every `intervalMs` while any node
  * is running and every IDLE_POLL_INTERVAL_MS otherwise. The callback gets the
- * statuses keyed by nodeId; unreachable nodes are left out. Returns a
- * function that stops polling.
+ * statuses keyed by nodeId, which leave out unreachable nodes, and the IDs of
+ * the nodes that could not be reached. Returns a function that stops polling.
  */
 export function pollNodeStates(
   nodes: NodeInfo[],
   intervalMs: number,
-  callback: (statuses: Map<string, PendulumStatus>) => void,
+  callback: (statuses: Map<string, PendulumStatus>, unreachable: Set<string>) => void,
 ): () => void {
   return pollActiveNodes(nodes, fetchNodeStatus, callback, (statuses) => {
     const anyRunning = [...statuses.values()].some((status) => status.lifecycle === 'running')
@@ -119,7 +121,12 @@ export function pollProtocolStates(
   nodes: NodeInfo[],
   callback: (protocols: Map<string, ProtocolStatus>) => void,
 ): () => void {
-  return pollActiveNodes(nodes, fetchProtocolStatus, callback, () => PROTOCOL_POLL_INTERVAL_MS)
+  return pollActiveNodes(
+    nodes,
+    fetchProtocolStatus,
+    (protocols) => callback(protocols),
+    () => PROTOCOL_POLL_INTERVAL_MS,
+  )
 }
 
 export type LifecycleCommand = 'start' | 'pause' | 'stop'

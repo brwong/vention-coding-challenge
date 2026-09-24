@@ -599,18 +599,18 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 5.5 Improved UX
 
-- [ ] Add loading states
-  - [ ] Show "Scanning for nodes..." during initial discovery
-  - [ ] Show spinner on nodes being polled
-- [ ] Add error states
-  - [ ] "Node unreachable" for failed polls
-  - [ ] "Partial success: 4/5 nodes started" for group actions
-- [ ] Add responsive design
-  - [ ] Canvas scales to fit different screen sizes
-  - [ ] Controls remain usable on smaller screens
-- [ ] Add keyboard accessibility
-  - [ ] Tab through nodes and controls
-  - [ ] Enter/Space to activate buttons
+- [x] Add loading states
+  - [x] Show "Scanning for nodes..." during initial discovery
+  - [x] Show spinner on nodes being polled
+- [x] Add error states
+  - [x] "Node unreachable" for failed polls
+  - [x] "Partial success: 4/5 nodes started" for group actions
+- [x] Add responsive design
+  - [x] Canvas scales to fit different screen sizes
+  - [x] Controls remain usable on smaller screens
+- [x] Add keyboard accessibility
+  - [x] Tab through nodes and controls
+  - [x] Enter/Space to activate buttons
 
 **Testable outcome:**
 - User can select a node and see its current configuration

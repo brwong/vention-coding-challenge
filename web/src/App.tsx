@@ -18,9 +18,9 @@ import {
 } from './services/nodeState'
 
 const COMMAND_VERBS: Record<LifecycleCommand, string> = {
-  start: 'Started',
-  pause: 'Paused',
-  stop: 'Stopped',
+  start: 'started',
+  pause: 'paused',
+  stop: 'stopped',
 }
 
 const GROUP_COMMANDS: { command: LifecycleCommand; label: string }[] = [
@@ -28,6 +28,8 @@ const GROUP_COMMANDS: { command: LifecycleCommand; label: string }[] = [
   { command: 'pause', label: 'Pause All' },
   { command: 'stop', label: 'Stop All' },
 ]
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
 /** True when two scans found the same nodes, ignoring when each was last seen. */
 function sameNodes(a: NodeInfo[], b: NodeInfo[]): boolean {
@@ -42,15 +44,17 @@ function sameNodes(a: NodeInfo[], b: NodeInfo[]): boolean {
 
 function App() {
   const [nodes, setNodes] = useState<NodeInfo[]>([])
-  const [scanned, setScanned] = useState(false)
+  // True until a scan finishes, whether the first one or one asked for by Refresh.
+  const [scanning, setScanning] = useState(true)
   const [statuses, setStatuses] = useState(new Map<string, PendulumStatus>())
+  const [unreachable, setUnreachable] = useState(new Set<string>())
   const [protocols, setProtocols] = useState(new Map<string, ProtocolStatus>())
   const [lastUpdated, setLastUpdated] = useState(new Map<string, number>())
   const [selectedNodeId, setSelectedNodeId] = useState<string>()
   // Unapplied edits, shared by the form and the canvas. They belong to one node
   // and are ignored once another node is selected.
   const [draft, setDraft] = useState<{ nodeId: string; fields: ConfigDraft }>()
-  const [actionMessage, setActionMessage] = useState<string>()
+  const [actionMessage, setActionMessage] = useState<{ text: string; error: boolean }>()
   const [busy, setBusy] = useState(false)
   const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
   // A node whose config form should take focus once it has rendered.
@@ -62,7 +66,7 @@ function App() {
   useEffect(
     () =>
       startPeriodicScan((found) => {
-        setScanned(true)
+        setScanning(false)
         // Keep the old array when nothing changed so polling isn't restarted.
         setNodes((previous) => (sameNodes(previous, found) ? previous : found))
       }),
@@ -71,8 +75,9 @@ function App() {
 
   useEffect(
     () =>
-      pollNodeStates(nodes, RUNNING_POLL_INTERVAL_MS, (polled) => {
+      pollNodeStates(nodes, RUNNING_POLL_INTERVAL_MS, (polled, failed) => {
         setStatuses(polled)
+        setUnreachable(failed)
         setLastUpdated((previous) => {
           const next = new Map(previous)
           const now = Date.now()
@@ -99,24 +104,33 @@ function App() {
     )
     const failed = activeNodes.filter((_, i) => results[i].status === 'rejected')
     const succeeded = activeNodes.length - failed.length
-    let message = `${COMMAND_VERBS[command]} ${succeeded}/${activeNodes.length} nodes`
-    if (failed.length > 0) {
-      message += `, ${failed.length} failed (${failed.map((node) => node.nodeId).join(', ')})`
+    const counts = `${succeeded}/${activeNodes.length} nodes ${COMMAND_VERBS[command]}`
+    const failedIds = failed.map((node) => node.nodeId).join(', ')
+    if (failed.length === 0) {
+      setActionMessage({ text: capitalize(counts), error: false })
+    } else if (succeeded === 0) {
+      setActionMessage({ text: `Failed: ${counts} (${failedIds} unreachable)`, error: true })
+    } else {
+      setActionMessage({ text: `Partial success: ${counts}; ${failedIds} failed`, error: true })
     }
-    setActionMessage(message)
     setBusy(false)
     // Poll now rather than wait out the idle interval, so the change shows at once.
     setPollKey((key) => key + 1)
+  }
+
+  function refresh() {
+    setScanning(true)
+    setScanKey((key) => key + 1)
   }
 
   async function runNodeCommand(node: NodeInfo, command: LifecycleCommand) {
     setBusyNodeIds((previous) => new Set(previous).add(node.nodeId))
     try {
       await sendCommand(node.port, command)
-      setActionMessage(`${COMMAND_VERBS[command]} ${node.nodeId}`)
+      setActionMessage({ text: `${node.nodeId} ${COMMAND_VERBS[command]}`, error: false })
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
-      setActionMessage(`Failed to ${command} ${node.nodeId}: ${reason}`)
+      setActionMessage({ text: `Failed to ${command} ${node.nodeId}: ${reason}`, error: true })
     }
     setBusyNodeIds((previous) => {
       const next = new Set(previous)
@@ -177,8 +191,8 @@ function App() {
               {label}
             </button>
           ))}
-          <button type="button" onClick={() => setScanKey((key) => key + 1)}>
-            Refresh Nodes
+          <button type="button" disabled={scanning} onClick={refresh}>
+            {scanning ? 'Scanning…' : 'Refresh Nodes'}
           </button>
         </div>
         {newest && (
@@ -187,18 +201,31 @@ function App() {
           </p>
         )}
         {actionMessage && (
-          <p className="action-message" role="status">
-            {actionMessage}
+          <p
+            className={actionMessage.error ? 'action-message error' : 'action-message'}
+            role="status"
+          >
+            {actionMessage.text}
           </p>
         )}
       </header>
       {nodes.length === 0 ? (
-        <p className="empty">{scanned ? 'No nodes found' : 'Scanning for nodes…'}</p>
+        <p className="empty" role="status">
+          {scanning ? (
+            <>
+              <span className="spinner" aria-hidden="true" />
+              Scanning for nodes…
+            </>
+          ) : (
+            'No nodes found'
+          )}
+        </p>
       ) : (
         <main>
           <PendulumCanvas
             nodes={nodes}
             statuses={statuses}
+            unreachable={unreachable}
             selectedNodeId={selected}
             draftConfig={selectedStatus && resolveDraft(selectedStatus.config, draftFields)}
             onDraftChange={dragDraft}
@@ -210,6 +237,7 @@ function App() {
               nodes={nodes}
               statuses={statuses}
               protocols={protocols}
+              unreachable={unreachable}
               lastUpdated={lastUpdated}
               selectedNodeId={selected}
               busyNodeIds={busyNodeIds}

@@ -1,4 +1,4 @@
-import { type PointerEvent, useRef, useState } from 'react'
+import { type KeyboardEvent, type PointerEvent, useRef, useState } from 'react'
 import {
   CONFIG_LIMITS,
   HINGE_Y,
@@ -22,6 +22,7 @@ type DragPart = 'hinge' | 'bob'
 interface Props {
   nodes: NodeInfo[]
   statuses: Map<string, PendulumStatus>
+  unreachable: Set<string>
   selectedNodeId?: string
   // The selected node's config with the unapplied edits laid over it.
   draftConfig?: PendulumConfig
@@ -82,6 +83,7 @@ function dragChange(part: DragPart, point: Point, config: PendulumConfig): Parti
 export function PendulumCanvas({
   nodes,
   statuses,
+  unreachable,
   selectedNodeId,
   draftConfig,
   onDraftChange,
@@ -121,7 +123,7 @@ export function PendulumCanvas({
       ref={svgRef}
       className={drag ? 'pendulum-canvas dragging' : 'pendulum-canvas'}
       viewBox={currentViewBox}
-      role="img"
+      role="group"
       aria-label="Pendulums"
       onPointerMove={moveDrag}
       onPointerUp={endDrag}
@@ -131,6 +133,19 @@ export function PendulumCanvas({
         const status = statuses.get(node.nodeId)
         const x = hingeX(node, status)
         const selected = node.nodeId === selectedNodeId
+        // Each pendulum is a tab stop that selects its node on click, Enter or Space.
+        const selectable = {
+          tabIndex: 0,
+          role: 'button',
+          'aria-label': `Select ${node.nodeId}`,
+          'aria-pressed': selected,
+          onClick: () => onSelect(node.nodeId),
+          onKeyDown: (event: KeyboardEvent) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return
+            event.preventDefault()
+            onSelect(node.nodeId)
+          },
+        }
         const hinge = (
           <rect
             x={x - HINGE_SIZE / 2}
@@ -142,11 +157,12 @@ export function PendulumCanvas({
         )
 
         if (!status) {
+          const lost = node.status === 'inactive' || unreachable.has(node.nodeId)
           return (
-            <g key={node.nodeId} className="pendulum unreachable" opacity={0.6}>
+            <g key={node.nodeId} className="pendulum unreachable" opacity={0.6} {...selectable}>
               {hinge}
               <text x={x} y={HINGE_Y - 8} textAnchor="middle" className="label">
-                {node.nodeId} (unreachable)
+                {node.nodeId} ({lost ? 'unreachable' : 'connecting…'})
               </text>
             </g>
           )
@@ -159,7 +175,7 @@ export function PendulumCanvas({
           <g
             key={node.nodeId}
             className={selected ? 'pendulum selected' : 'pendulum'}
-            onClick={selected ? undefined : () => onSelect(node.nodeId)}
+            {...selectable}
           >
             <line x1={x} y1={HINGE_Y} x2={bob.x} y2={bob.y} className="rod" />
             {hinge}

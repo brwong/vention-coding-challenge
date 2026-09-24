@@ -13,6 +13,7 @@ interface Props {
   nodes: NodeInfo[]
   statuses: Map<string, PendulumStatus>
   protocols: Map<string, ProtocolStatus>
+  unreachable: Set<string>
   lastUpdated: Map<string, number>
   selectedNodeId?: string
   // Nodes with a command in flight; their buttons are disabled until it settles.
@@ -29,6 +30,7 @@ export function NodeList({
   nodes,
   statuses,
   protocols,
+  unreachable,
   lastUpdated,
   selectedNodeId,
   busyNodeIds,
@@ -36,62 +38,70 @@ export function NodeList({
   onConfigure,
 }: Props) {
   return (
-    <table className="node-list">
-      <thead>
-        <tr>
-          <th>Node</th>
-          <th>Port</th>
-          <th>State</th>
-          <th>Last update</th>
-          <th>
-            <span className="visually-hidden">Actions</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {nodes.map((node) => {
-          const status = statuses.get(node.nodeId)
-          const disabled = !status || busyNodeIds.has(node.nodeId)
-          return (
-            <tr
-              key={node.nodeId}
-              className={node.nodeId === selectedNodeId ? 'selected' : undefined}
-              aria-selected={node.nodeId === selectedNodeId}
-            >
-              <td>
-                <span className="swatch" style={{ background: nodeColor(node.port) }} />
-                {node.nodeId}
-              </td>
-              <td className="muted">{node.port}</td>
-              <td>
-                <LifecycleIndicator status={status} protocol={protocols.get(node.nodeId)} />
-              </td>
-              <td className="muted">{formatTime(lastUpdated.get(node.nodeId))}</td>
-              <td className="node-actions">
-                {NODE_COMMANDS.map(({ command, label }) => (
-                  <button
-                    key={command}
-                    type="button"
-                    disabled={disabled}
-                    aria-label={`${label} ${node.nodeId}`}
-                    onClick={() => onCommand(node, command)}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={!status}
-                  aria-label={`Configure ${node.nodeId}`}
-                  onClick={() => onConfigure(node.nodeId)}
-                >
-                  Configure
-                </button>
-              </td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <div className="table-scroll">
+      <table className="node-list">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th className="port">Port</th>
+            <th>State</th>
+            <th className="updated">Last update</th>
+            <th>
+              <span className="visually-hidden">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {nodes.map((node) => {
+            const status = statuses.get(node.nodeId)
+            const disabled = !status || busyNodeIds.has(node.nodeId)
+            return (
+              <tr
+                key={node.nodeId}
+                className={node.nodeId === selectedNodeId ? 'selected' : undefined}
+                aria-selected={node.nodeId === selectedNodeId}
+              >
+                <td className="node-id">
+                  <span className="swatch" style={{ background: nodeColor(node.port) }} />
+                  {node.nodeId}
+                </td>
+                <td className="muted port">{node.port}</td>
+                <td>
+                  <LifecycleIndicator
+                    status={status}
+                    protocol={protocols.get(node.nodeId)}
+                    unreachable={node.status === 'inactive' || unreachable.has(node.nodeId)}
+                  />
+                </td>
+                <td className="muted updated">{formatTime(lastUpdated.get(node.nodeId))}</td>
+                <td>
+                  <div className="node-actions">
+                    {NODE_COMMANDS.map(({ command, label }) => (
+                      <button
+                        key={command}
+                        type="button"
+                        disabled={disabled}
+                        aria-label={`${label} ${node.nodeId}`}
+                        onClick={() => onCommand(node, command)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={!status}
+                      aria-label={`Configure ${node.nodeId}`}
+                      onClick={() => onConfigure(node.nodeId)}
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }
