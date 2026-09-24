@@ -85,7 +85,10 @@ export function createApp(
 
   app.put("/config", (req, res) => {
     const update = parseConfigUpdate(req.body);
-    res.json(configBody(simulation.applyConfig(update)));
+    const config = simulation.applyConfig(update);
+    // Peers need the new hinge, length and mass to check collisions against us.
+    void services.membership.announce();
+    res.json(configBody(config));
   });
 
   const lifecycleCommands = {

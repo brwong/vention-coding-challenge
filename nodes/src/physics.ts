@@ -41,7 +41,7 @@ export function calculateBobRadius(mass: number): number {
 
 /** Bob center in coordinates where positive y points downward. */
 export function getPosition(
-  state: PendulumState,
+  state: Pick<PendulumState, "angle">,
   anchorX: number,
   anchorY: number,
   length: number,
@@ -52,18 +52,18 @@ export function getPosition(
   };
 }
 
-export function checkCollision(
-  state1: PendulumState,
-  state2: PendulumState,
-  anchor1: Point,
-  anchor2: Point,
-  length1: number,
-  length2: number,
-  mass1: number,
-  mass2: number,
-): boolean {
-  const p1 = getPosition(state1, anchor1.x, anchor1.y, length1);
-  const p2 = getPosition(state2, anchor2.x, anchor2.y, length2);
+/** Everything needed to place a bob and size it. */
+export interface Bob {
+  angle: number; // radians
+  anchor: Point; // hinge position
+  length: number;
+  mass: number;
+}
+
+/** True when two bobs touch or come within COLLISION_MARGIN of each other. */
+export function checkCollision(a: Bob, b: Bob): boolean {
+  const p1 = getPosition({ angle: a.angle }, a.anchor.x, a.anchor.y, a.length);
+  const p2 = getPosition({ angle: b.angle }, b.anchor.x, b.anchor.y, b.length);
   const distance = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-  return distance <= calculateBobRadius(mass1) + calculateBobRadius(mass2) + COLLISION_MARGIN;
+  return distance <= calculateBobRadius(a.mass) + calculateBobRadius(b.mass) + COLLISION_MARGIN;
 }

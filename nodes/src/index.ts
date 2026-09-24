@@ -1,6 +1,7 @@
 import { ConfigError, USAGE, loadConfig } from "./config";
 import { HEARTBEAT_INTERVAL_MS } from "./constants";
 import { createApp } from "./server";
+import { CollisionService } from "./services/collisionService";
 import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
 import { PositionService } from "./services/positionService";
@@ -28,7 +29,11 @@ async function main(): Promise<void> {
     "request",
     createApp({ nodeId, port }, simulation, { membership, election, position }),
   );
-  simulation.startLoop(() => position.broadcastPosition(simulation.state.angle));
+  const collision = new CollisionService(nodeId, simulation, membership, position, election);
+  simulation.startLoop(() => {
+    position.broadcastPosition(simulation.state.angle);
+    collision.checkCollisions();
+  });
 
   logStartup(config);
   await membership.probeLowerPorts();

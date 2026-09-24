@@ -445,18 +445,18 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.4 Collision Detection
 
-- [ ] Extend `src/physics.ts` (already implemented in Section 2.3)
-  - [ ] Ensure `checkCollision()` uses `COLLISION_MARGIN = 1` from constants
+- [x] Extend `src/physics.ts` (already implemented in Section 2.3)
+  - [x] Ensure `checkCollision()` uses `COLLISION_MARGIN = 1` from constants
 
-- [ ] Create `src/services/collisionService.ts`
-  - [ ] Implement `checkCollisions(localState: PendulumState, localConfig: Config, positionCache: Map<string, PositionMessage>, peers: Peer[]): Promise<void>`
-    - [ ] For each peer in cache:
-      - [ ] Get their latest angle from cache
-      - [ ] Calculate their bob position (need their config - see note below)
-      - [ ] Check collision with local bob
-    - [ ] If collision detected, send `COLLISION_DETECTED` to current leader
-  - [ ] Implement `sendCollisionDetected(leaderPort: number, myNodeId: string, term: number): Promise<void>`
-    - [ ] POST `/message` to leader with:
+- [x] Create `src/services/collisionService.ts`
+  - [x] Implement `checkCollisions(localState: PendulumState, localConfig: Config, positionCache: Map<string, PositionMessage>, peers: Peer[]): Promise<void>`
+    - [x] For each peer in cache:
+      - [x] Get their latest angle from cache
+      - [x] Calculate their bob position (need their config - see note below)
+      - [x] Check collision with local bob
+    - [x] If collision detected, send `COLLISION_DETECTED` to current leader
+  - [x] Implement `sendCollisionDetected(leaderPort: number, myNodeId: string, term: number): Promise<void>`
+    - [x] POST `/message` to leader with:
       ```json
       { "type": "COLLISION_DETECTED", "nodeId": "node-7702", "term": 3 }
       ```

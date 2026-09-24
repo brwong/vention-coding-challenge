@@ -125,6 +125,11 @@ export class MembershipService {
     }
   }
 
+  /** Sends JOIN to every peer again so they pick up this node's new configuration. */
+  async announce(): Promise<void> {
+    await this.broadcast(this.joinMessage());
+  }
+
   /** Sends `message` to every known peer concurrently and collects the replies. */
   async broadcast<T = unknown>(message: Message): Promise<(T | null)[]> {
     return Promise.all([...this.peers.values()].map((peer) => sendMessage<T>(peer.port, message)));
