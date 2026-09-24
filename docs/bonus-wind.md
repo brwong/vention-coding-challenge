@@ -21,6 +21,10 @@ The pendulum remains:
 
 Wind must not change the existing angle convention, timestep, bob geometry, collision rules, or STOP behavior.
 
+## Units
+
+Use the simulation's units from the physics document: distance in centimetres, mass in grams, and time in seconds. Wind speed is therefore in cm/s, air density in g/cm³, and force in dynes (g·cm/s²). Convert SI reference values before use; for example, 5 m/s is `500` cm/s and 1.225 kg/m³ is `0.001225` g/cm³.
+
 ## Wind control
 
 Wind is constant while enabled. It has no gusts or time-varying behavior.
@@ -54,8 +58,8 @@ Request:
 {
   "enabled": true,
   "direction": "left",
-  "speed": 5,
-  "airDensity": 1.225,
+  "speed": 500,
+  "airDensity": 0.001225,
   "dragCoefficient": 0.47
 }
 ```
@@ -88,8 +92,8 @@ The existing simulation reset operation must also disable wind:
 type WindOnRequest = {
   enabled: true;
   direction: "left" | "right";
-  speed: number;                 // m/s, non-negative
-  airDensity: number;            // kg/m³
+  speed: number;                 // cm/s, non-negative
+  airDensity: number;            // g/cm³
   dragCoefficient: number;
 };
 ```
@@ -255,13 +259,26 @@ angle = normalizeAngle(angle);
 Keep default values and limits centralized:
 
 ```ts
-const DEFAULT_AIR_DENSITY_KG_PER_M3 = 1.225;
+const DEFAULT_AIR_DENSITY = 0.001225; // g/cm³ (1.225 kg/m³)
 const DEFAULT_SPHERE_DRAG_COEFFICIENT = 0.47;
-const MIN_WIND_SPEED_M_PER_S = 0;
-const MAX_WIND_SPEED_M_PER_S = 100;
+const MIN_WIND_SPEED = 0; // cm/s
+const MAX_WIND_SPEED = 10000; // cm/s (100 m/s)
 ```
 
-`MAX_WIND_SPEED_M_PER_S` is a hard validation cap. It is intentionally higher than the UI’s expected slider range so the API remains safe without requiring the UI to expose extreme values. The cap may be changed through centralized configuration if testing shows that a different range is appropriate.
+`MAX_WIND_SPEED` is a hard validation cap. It is intentionally higher than the UI’s expected slider range so the API remains safe without requiring the UI to expose extreme values. The cap may be changed through centralized configuration if testing shows that a different range is appropriate.
+
+Suggested UI slider range: `0` through `5000` cm/s (0–50 m/s). Wind has little visible effect on the default bob below about 2000 cm/s. The table below lists the steady-state lean angle, `atan(F / (m * g))`, for the default bob (mass `4200`, radius ≈ `10`) at rest under wind with the default air density and drag coefficient:
+
+| Wind speed (cm/s) | Equivalent (m/s) | Steady-state lean |
+| ---: | ---: | ---: |
+| 500 | 5 | 0.3° |
+| 1000 | 10 | 1.3° |
+| 2000 | 20 | 5.0° |
+| 3000 | 30 | 11.2° |
+| 5000 | 50 | 28.8° |
+| 10000 | 100 | 65.5° |
+
+Heavier bobs lean less and lighter bobs lean more, so bobs with different masses will settle at different angles under the same wind.
 
 Do not add an arbitrary force or acceleration clamp unless instability is observed and the limit is documented separately.
 
@@ -269,7 +286,7 @@ For wind-on requests, validate:
 
 - `enabled` is `true`.
 - `direction` is `"left"` or `"right"`.
-- `speed` is finite and within `0` through `MAX_WIND_SPEED_M_PER_S`.
+- `speed` is finite and within `0` through `MAX_WIND_SPEED`.
 - `airDensity` is finite and positive.
 - `dragCoefficient` is finite and non-negative.
 

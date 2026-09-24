@@ -118,11 +118,11 @@ Do not mention this document in commit messages or code (comments). Check off it
     ```ts
     export const PHYSICS_HZ = 60;
     export const DT = 1 / 60;
-    export const GRAVITY = 9.81; // distance units/s²
-    export const COLLISION_MARGIN = 0.01; // distance units
-    export const MIN_MASS = 0.001;
+    export const GRAVITY = 981; // distance units/s² (1 unit = 1 cm; 100-unit period ≈ 2 s)
+    export const COLLISION_MARGIN = 1; // distance units
+    export const MIN_MASS = 35; // bob radius ≈ 2
     export const MAX_MASS = 34000; // bob radius ≈ 20
-    export const MIN_LENGTH = 0.05;
+    export const MIN_LENGTH = 10;
     export const MAX_LENGTH = 200;
     export const MIN_ANGLE_RAD = -Math.PI;
     export const MAX_ANGLE_RAD = Math.PI;
@@ -356,7 +356,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 
 - [ ] Extend `src/config.ts`
   - [ ] Add `joinOrder: number` - position in discovery order (0 for first node, 1 for second, etc.)
-  - [ ] If `--x` omitted, calculate `x` from `joinOrder * SPACING` (e.g., `SPACING = 200`)
+  - [ ] If `--x` omitted, calculate `x` from `joinOrder * SPACING` (`SPACING = 100`)
 
 - [ ] Create `src/services/membershipService.ts`
   - [ ] Define `Peer` interface:
@@ -442,7 +442,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 ### 4.4 Collision Detection
 
 - [ ] Extend `src/physics.ts` (already implemented in Section 2.3)
-  - [ ] Ensure `checkCollision()` uses `COLLISION_MARGIN = 0.01` from constants
+  - [ ] Ensure `checkCollision()` uses `COLLISION_MARGIN = 1` from constants
 
 - [ ] Create `src/services/collisionService.ts`
   - [ ] Implement `checkCollisions(localState: PendulumState, localConfig: Config, positionCache: Map<string, PositionMessage>, peers: Peer[]): Promise<void>`
@@ -742,7 +742,8 @@ Do not mention this document in commit messages or code (comments). Check off it
 - Key constants to keep in sync:
   - `BASE_PORT = 7700` [interfaces:1]
   - `PHYSICS_HZ = 60`, `DT = 1/60` [physics:1]
-  - `GRAVITY = 9.81` [physics:1]
-  - `COLLISION_MARGIN = 0.01` [physics:1]
+  - `GRAVITY = 981` [physics:1]
+  - `COLLISION_MARGIN = 1` [physics:1]
+  - `SPACING = 100` (default hinge spacing)
   - `MAX_CONSECUTIVE_MISSES = 10` [interfaces:1]
   - `DEFAULT_LENGTH = 100`, `DEFAULT_MASS = 4200`, `DEFAULT_ANGLE = 20°` [interfaces:1]

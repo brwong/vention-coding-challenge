@@ -20,7 +20,7 @@ The rod cannot collide with other rods, bobs, or hinge points. Hinge points cann
 
 ## Units
 
-Lengths, positions, and radii share one abstract distance unit, the same unit used for SVG/world coordinates. Mass uses an abstract mass unit. Neither is tied to SI units.
+Lengths, positions, and radii share one distance unit, the same unit used for SVG/world coordinates. One distance unit corresponds to one centimetre and one mass unit to one gram, so the bobs' unit density is 1 g/cm³. Gravity is expressed in the same units, so a default 100-unit pendulum swings with a period of about two seconds.
 
 Wind is out of scope.
 
@@ -58,7 +58,7 @@ Use the full nonlinear equation for every angle:
 where:
 
 - `alpha` is angular acceleration in radians per second squared.
-- `g` is gravitational acceleration; use `9.81` distance units per second squared.
+- `g` is gravitational acceleration; use `981` distance units per second squared (9.81 m/s² in centimetres).
 - `L` is rod length in distance units.
 - `theta` is angular position in radians.
 
@@ -86,9 +86,9 @@ Use named constants or a centralized configuration object:
 
 ```ts
 const PHYSICS_HZ = 60;
-const MIN_MASS = 0.001;
+const MIN_MASS = 35; // radius ≈ 2
 const MAX_MASS = 34000; // radius ≈ 20
-const MIN_LENGTH = 0.05;
+const MIN_LENGTH = 10;
 const MAX_LENGTH = 200;
 const MIN_ANGLE_RAD = -Math.PI;
 const MAX_ANGLE_RAD = Math.PI;
@@ -155,7 +155,7 @@ For two bobs with centers `p1` and `p2` and physical radii `r1` and `r2`:
 Use:
 
 ```ts
-const COLLISION_MARGIN = 0.01;
+const COLLISION_MARGIN = 1;
 ```
 
 Keep the margin separate from bob radii and make it easy to change.
