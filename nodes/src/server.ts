@@ -1,6 +1,8 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import { ConfigError, parseConfigUpdate } from "./config";
+import type { MembershipService } from "./services/membershipService";
+import { type Message, MessageError, parseMessage, senderOf } from "./services/messages";
 import type { PendulumConfig, Simulation } from "./simulation";
 
 export interface NodeIdentity {
@@ -8,17 +10,9 @@ export interface NodeIdentity {
   port: number;
 }
 
-// Section 4 fills these in; until then /message only checks the type.
-export const MESSAGE_TYPES = [
-  "JOIN",
-  "HEARTBEAT",
-  "STOP",
-  "RESTART",
-  "POSITION",
-  "COLLISION_DETECTED",
-  "ELECTION_REQUEST",
-  "ELECTION_RESPONSE",
-] as const;
+export interface Services {
+  membership: MembershipService;
+}
 
 // Nodes only listen on loopback, so accept the web UI from any local port.
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -32,7 +26,22 @@ function configBody(config: PendulumConfig) {
   };
 }
 
-export function createApp(identity: NodeIdentity, simulation: Simulation): Express {
+/** Hands a peer message to the service responsible for its type. */
+async function routeMessage(message: Message, services: Services): Promise<object> {
+  switch (message.type) {
+    case "JOIN":
+      return services.membership.handleJoin(message);
+    default:
+      // HEARTBEAT only proves liveness, which /message records for every sender.
+      return { accepted: true };
+  }
+}
+
+export function createApp(
+  identity: NodeIdentity,
+  simulation: Simulation,
+  services: Services,
+): Express {
   const app = express();
   app.use(cors({ origin: LOCAL_ORIGIN }));
   app.use(express.json());
@@ -76,21 +85,27 @@ export function createApp(identity: NodeIdentity, simulation: Simulation): Expre
     });
   }
 
-  app.post("/message", (req, res) => {
-    const type = req.body?.type;
-    if (!MESSAGE_TYPES.includes(type)) {
-      res.status(400).json({ error: `Unknown message type: ${String(type)}` });
-      return;
-    }
-    res.status(202).json({ accepted: true, type });
+  app.post("/message", async (req, res) => {
+    const message = parseMessage(req.body);
+    // JOIN adds its sender itself; anything else counts as a sign of life.
+    if (message.type !== "JOIN") services.membership.recordContact(senderOf(message));
+    res.json(await routeMessage(message, services));
   });
 
   app.get("/protocol-status", (_req, res) => {
+    const { membership } = services;
+    const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
       term: 0,
       leader: null,
-      peers: [],
+      peers: [...membership.peers.values()].map((peer) => ({
+        nodeId: peer.nodeId,
+        port: peer.port,
+        config: peer.config,
+        msSinceHeartbeat: now - peer.lastHeartbeat,
+        suspected: membership.isSuspected(peer, now),
+      })),
     });
   });
 
@@ -99,7 +114,7 @@ export function createApp(identity: NodeIdentity, simulation: Simulation): Expre
   });
 
   const handleError: ErrorRequestHandler = (err, _req, res, _next) => {
-    if (err instanceof ConfigError) {
+    if (err instanceof ConfigError || err instanceof MessageError) {
       res.status(400).json({ error: err.message });
     } else if (err.type === "entity.parse.failed") {
       res.status(400).json({ error: "Request body is not valid JSON" });

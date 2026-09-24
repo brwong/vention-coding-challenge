@@ -358,12 +358,12 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.1 Membership Discovery
 
-- [ ] Extend `src/config.ts`
-  - [ ] Add `joinOrder: number` - position in discovery order (0 for first node, 1 for second, etc.)
-  - [ ] If `--x` omitted, calculate `x` from `joinOrder * SPACING` (`SPACING = 100`)
+- [x] Extend `src/config.ts`
+  - [x] Add `joinOrder: number` - position in discovery order (0 for first node, 1 for second, etc.)
+  - [x] If `--x` omitted, calculate `x` from `joinOrder * SPACING` (`SPACING = 100`)
 
-- [ ] Create `src/services/membershipService.ts`
-  - [ ] Define `Peer` interface:
+- [x] Create `src/services/membershipService.ts`
+  - [x] Define `Peer` interface:
     ```ts
     interface Peer {
       nodeId: string;
@@ -371,27 +371,27 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
       lastHeartbeat: number; // timestamp
     }
     ```
-  - [ ] Implement `probeLowerPorts(myPort: number): Promise<Peer[]>`
-    - [ ] After binding, scan ports from 7700 to `myPort - 1`
-    - [ ] For each responding port, send `JOIN` message
-    - [ ] Collect peer lists from responses
-  - [ ] Implement `sendJoin(myPort: number, targetPort: number): Promise<Peer[]>`
-    - [ ] POST `/message` with:
+  - [x] Implement `probeLowerPorts(myPort: number): Promise<Peer[]>`
+    - [x] After binding, scan ports from 7700 to `myPort - 1`
+    - [x] For each responding port, send `JOIN` message
+    - [x] Collect peer lists from responses
+  - [x] Implement `sendJoin(myPort: number, targetPort: number): Promise<Peer[]>`
+    - [x] POST `/message` with:
       ```json
       { "type": "JOIN", "nodeId": "node-7702", "port": 7702 }
       ```
-    - [ ] Parse response:
+    - [x] Parse response:
       ```json
       { "type": "JOIN_RESPONSE", "nodeId": "node-7701", "port": 7701, "peers": [...] }
       ```
-    - [ ] Return merged peer list
-  - [ ] Implement `handleJoin(message: any, peers: Peer[]): Promise<JOIN_RESPONSE>`
-    - [ ] Add sender to peer list
-    - [ ] Return current peer list
-  - [ ] Implement `startHeartbeat(peers: Peer[], myNodeId: string, intervalMs: number): () => void`
-    - [ ] Send periodic heartbeat to all known peers
-    - [ ] Mark peers as dead after timeout (e.g., no heartbeat for 10s)
-    - [ ] Return cleanup function
+    - [x] Return merged peer list
+  - [x] Implement `handleJoin(message: any, peers: Peer[]): Promise<JOIN_RESPONSE>`
+    - [x] Add sender to peer list
+    - [x] Return current peer list
+  - [x] Implement `startHeartbeat(peers: Peer[], myNodeId: string, intervalMs: number): () => void`
+    - [x] Send periodic heartbeat to all known peers
+    - [x] Mark peers as dead after timeout (e.g., no heartbeat for 10s)
+    - [x] Return cleanup function
 
 ### 4.2 Leader Election
 

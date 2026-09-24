@@ -5,7 +5,7 @@ import { type PendulumState, createPendulum, updatePendulum } from "./physics";
 // `ready` is the configured-but-never-started state a node boots into.
 export type Lifecycle = "ready" | "running" | "paused" | "stopped" | "restarting";
 
-export type PendulumConfig = Omit<Config, "port" | "nodeId">;
+export type PendulumConfig = Omit<Config, "port" | "nodeId" | "joinOrder">;
 
 /** One node's pendulum: its configuration, physics state and lifecycle. */
 export class Simulation {

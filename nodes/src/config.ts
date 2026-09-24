@@ -17,15 +17,16 @@ import {
 } from "./constants";
 
 export interface Config {
-  x: number; // hinge x-coordinate (from --x, or spaced by port order if omitted)
+  x: number; // hinge x-coordinate (from --x, or spaced by join order if omitted)
   length: number; // pendulum length (default: DEFAULT_LENGTH)
   mass: number; // bob mass (default: DEFAULT_MASS)
   angle: number; // initial angle in degrees (default: DEFAULT_ANGLE_DEG)
   port: number; // auto-discovered, not user-configurable
   nodeId: string; // derived from port: `node-7701`
+  joinOrder: number; // position in discovery order: 0 for the first node, 1 for the next, ...
 }
 
-export type CliOptions = Omit<Config, "port" | "nodeId" | "x"> & { x?: number };
+export type CliOptions = Omit<Config, "port" | "nodeId" | "joinOrder" | "x"> & { x?: number };
 
 export interface LoadedConfig {
   config: Config;
@@ -36,12 +37,22 @@ export interface LoadedConfig {
 
 export class ConfigError extends Error {}
 
+export function nodeIdForPort(port: number): string {
+  return `node-${port}`;
+}
+
+/** Inverse of nodeIdForPort. Returns null for anything that is not a node ID. */
+export function portFromNodeId(nodeId: string): number | null {
+  const match = /^node-(\d+)$/.exec(nodeId);
+  return match ? Number(match[1]) : null;
+}
+
 export const USAGE = `Usage: npm start -- [options]
 
 Starts a pendulum node on the first free port from ${BASE_PORT}.
 
 Options:
-  --x <number>       Hinge x-coordinate (default: spaced ${SPACING} apart by port order)
+  --x <number>       Hinge x-coordinate (default: spaced ${SPACING} apart by join order)
   --length <number>  Pendulum length, ${MIN_LENGTH} to ${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
   --mass <number>    Bob mass, ${MIN_MASS} to ${MAX_MASS} (default: ${DEFAULT_MASS})
   --angle <number>   Initial angle in degrees, ${MIN_ANGLE_DEG} to ${MAX_ANGLE_DEG} (default: ${DEFAULT_ANGLE_DEG})
@@ -205,13 +216,16 @@ export async function loadConfig(argv = process.argv.slice(2)): Promise<LoadedCo
   if (options === null) return null;
 
   const { server, port } = await listenOnAvailablePort();
+  // Nodes probe ports upward from BASE_PORT and claim the first free one, so
+  // the port's offset is the order in which the node was discovered.
+  const joinOrder = port - BASE_PORT;
   return {
     config: {
       ...options,
-      // Ports are claimed in start-up order, so they give a regular spacing.
-      x: options.x ?? (port - BASE_PORT) * SPACING,
+      x: options.x ?? joinOrder * SPACING,
       port,
-      nodeId: `node-${port}`,
+      nodeId: nodeIdForPort(port),
+      joinOrder,
     },
     server,
   };

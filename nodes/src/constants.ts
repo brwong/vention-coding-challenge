@@ -24,3 +24,9 @@ export const MIN_LENGTH = 10;
 export const MAX_LENGTH = 200;
 export const MIN_ANGLE_RAD = -Math.PI;
 export const MAX_ANGLE_RAD = Math.PI;
+
+// Coordination timing. These are local timers only; nodes never compare clocks.
+export const MESSAGE_TIMEOUT_MS = 500; // give up on a peer request after this long
+export const HEARTBEAT_INTERVAL_MS = 500;
+export const PEER_SUSPECT_MS = 2000; // silent this long: suspected dead
+export const PEER_TIMEOUT_MS = 10000; // silent this long: removed from the peer list
