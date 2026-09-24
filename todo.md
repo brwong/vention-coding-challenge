@@ -214,12 +214,12 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 2.5 Terminal Status Display
 
-- [ ] Add terminal output functionality
-  - [ ] On startup: log "Pendulum Node [nodeId] started on port [port]"
-  - [ ] Log configuration: "Config: x=[x], length=[length], mass=[mass], angle=[angle]°"
-  - [ ] Every N seconds (e.g., 5s): log current state summary
-    - [ ] Format: `[node-7701] angle: 23.4°, running: true, lifecycle: running`
-    - [ ] Overwrite the text in the terminal, so it's not a flowing stream of new values
+- [x] Add terminal output functionality
+  - [x] On startup: log "Pendulum Node [nodeId] started on port [port]"
+  - [x] Log configuration: "Config: x=[x], length=[length], mass=[mass], angle=[angle]°"
+  - [x] Every N seconds (e.g., 5s): log current state summary
+    - [x] Format: `[node-7701] angle: 23.4°, running: true, lifecycle: running`
+    - [x] Overwrite the text in the terminal, so it's not a flowing stream of new values
   - [ ] Log API requests at debug level (optional, use `console.debug`)
 
 ### 2.6 Main Entry Point
