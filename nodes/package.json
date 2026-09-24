@@ -1,0 +1,23 @@
+{
+  "name": "pendulum-node",
+  "version": "1.0.0",
+  "description": "Pendulum simulation node server",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8"
+  }
+}
