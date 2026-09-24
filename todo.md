@@ -2,6 +2,8 @@
 
 This document outlines the phased implementation plan for the distributed pendulum simulation. Each section is independently runnable and manually testable.
 
+The spec file (in `docs/spec.md`) should take highest priority when making decisions. It must not be modified.
+
 Do not mention this document in commit messages or code (comments). Check off items as they are completed, and include this file in the commit.
 
 **Key constraints from spec documents:**
@@ -987,27 +989,42 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 7.4 README
 
-- [ ] Update the root `README.md` with only practical project-level information
+`docs/spec.md`'s Submission checklist takes priority over the general "keep it in docs/" preference below — the five items it lists must live in the README itself, not just be linked to. Everything else stays in the dedicated `docs/` files.
+
+- [ ] Update the root `README.md` to cover exactly what `spec.md` requires, kept brief
   - [ ] Brief project description
   - [ ] Prerequisites
-  - [ ] Install instructions for `/nodes` and `/web`
-  - [ ] How to run one node manually
-  - [ ] How to run the web UI manually
-  - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo
-  - [ ] How to run backend and frontend tests
-  - [ ] Short pointers to `interfaces.md`, `coordination.md`, and `physics.md` for implementation and design details
-  - [ ] Brief known limitations, such as single-host-only operation and latest-known-state collision detection
+  - [ ] **How to install and run the project** [spec.md Submission]
+    - [ ] Install instructions for `/nodes` and `/web`
+    - [ ] How to run one node manually
+    - [ ] How to run the web UI manually
+    - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo
+  - [ ] **The architecture of the solution** [spec.md Submission]
+    - [ ] A few paragraphs on the node/web split, how nodes discover each other, and how the UI discovers nodes
+    - [ ] Keep it to a short summary; link to `interfaces.md` and `coordination.md` for the full contracts
+  - [ ] **Important technical decisions and trade-offs** [spec.md Submission]
+    - [ ] Summarize the decisions most relevant to a reviewer (e.g., HTTP polling instead of WebSockets, single-host-only, latest-known-state collision detection, Option B config caching from JOIN_RESPONSE)
+    - [ ] Keep it brief; link to the relevant docs file for the full rationale
+  - [ ] **Known limitations** [spec.md Submission]
+    - [ ] e.g., single-host-only operation, latest-known-state collision detection, N-node design not hard-coded to five
+  - [ ] **How to run the tests** [spec.md Submission]
+    - [ ] `npm test` - run all tests
+    - [ ] `npm run test:nodes` - run backend tests only
+    - [ ] `npm run test:web` - run frontend tests only
+    - [ ] `npm run test:watch` (inside `nodes` or `web`) - run in watch mode during development
+  - [ ] Keep the existing "example usage scenario" (the collision-causing multi-node walkthrough added in Sections 1/2.6/4.7) — don't remove it while reorganizing the README
 
-- [ ] Keep detailed documentation in the dedicated files
+- [ ] Keep the majority of detailed documentation in the dedicated `docs/` files
   - [ ] CLI/UI behavior and HTTP interaction: `interfaces.md`
   - [ ] Membership, leadership, ordering, liveness, and STOP/RESTART behavior: `coordination.md`
   - [ ] Motion, geometry, timing, and collision math: `physics.md`
+  - [ ] Full rationale behind each technical decision and trade-off, beyond the README's brief summary
   - [ ] Do not duplicate those documents’ detailed contracts in the README
   - [ ] Do not add architecture diagrams unless they become necessary
 
 **Testable outcome:**
-- A reviewer can install, run, stop, and test the project using the README
-- A reviewer can quickly find detailed implementation decisions in the dedicated Markdown files
+- A reviewer can install, run, stop, and test the project using the README alone, and the README on its own satisfies every bullet in `spec.md`'s Submission checklist
+- The README's architecture and trade-offs sections are short summaries, not full contracts; a reviewer can find full implementation detail in the dedicated Markdown files in `docs/`
 
 ### 7.5 Original Spec Verification
 
