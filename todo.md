@@ -860,33 +860,33 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 **File: `/web/src/App.test.tsx`**
 
-- [ ] Test component rendering
-  - [ ] App renders without crashing
-  - [ ] Shows "No nodes found" when scan returns empty
-  - [ ] PendulumCanvas renders SVG element
+- [x] Test component rendering
+  - [x] App renders without crashing
+  - [x] Shows "No nodes found" when scan returns empty
+  - [x] PendulumCanvas renders SVG element
 
-- [ ] Test node discovery (mocked)
-  - [ ] Mock scanForNodes to return 3 nodes
-  - [ ] Verify NodeList shows 3 items
-  - [ ] Verify node IDs displayed correctly
+- [x] Test node discovery (mocked)
+  - [x] Mock fetch so the scan finds 3 nodes
+  - [x] Verify NodeList shows 3 items
+  - [x] Verify node IDs displayed correctly
 
-- [ ] Test controls (mocked)
-  - [ ] Mock fetch for POST /start
-  - [ ] Click "Start All" → fetch called 3 times (once per node)
-  - [ ] Mock fetch to fail for one node
-  - [ ] Verify partial failure shown in UI
+- [x] Test controls (mocked)
+  - [x] Mock fetch for POST /start
+  - [x] Click "Start All" → fetch called 3 times (once per node)
+  - [x] Mock fetch to fail for one node
+  - [x] Verify partial failure shown in UI
 
 **File: `/web/src/services/nodeDiscovery.test.ts`**
 
-- [ ] Test scanForNodes (mocked fetch)
-  - [ ] Mock fetch to succeed on 7700, 7701, fail on 7702+
-  - [ ] Verify scan stops after 10 consecutive misses
-  - [ ] Verify returned nodes have correct shape
+- [x] Test scanForNodes (mocked fetch)
+  - [x] Mock fetch to succeed on 7700, 7701, fail on 7702+
+  - [x] Verify scan stops after `MAX_CONSECUTIVE_MISSES` (5) consecutive misses
+  - [x] Verify returned nodes have correct shape
 
-- [ ] Test pollNodeStates (mocked fetch)
-  - [ ] Mock fetch to return different states
-  - [ ] Verify callback called with updated states
-  - [ ] Verify cleanup function stops polling
+- [x] Test pollNodeStates (mocked fetch)
+  - [x] Mock fetch to return different states
+  - [x] Verify callback called with updated states
+  - [x] Verify cleanup function stops polling
 
 **Expected runtime:** ~3-5 seconds for all frontend tests
 
