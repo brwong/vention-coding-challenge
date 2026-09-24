@@ -533,7 +533,7 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.7 README Update
 
-- [ ] Update the example scenario in the README so that it will cause a collision some time after starting
+- [x] Update the example scenario in the README so that it will cause a collision some time after starting
 
 **Testable outcome:**
 - Start 5 nodes sequentially (they auto-assign ports 7700-7704)

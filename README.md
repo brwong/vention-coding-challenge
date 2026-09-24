@@ -34,7 +34,36 @@ curl -X PUT http://localhost:7700/config \
   -d '{"angle": 30, "mass": 35}'            # resets the pendulum to the new initial angle
 ```
 
-The node's terminal redraws a one-line status summary (angle, bob position and lifecycle) twice a second.
+The node's terminal redraws a one-line status summary (angle, bob position and lifecycle) twice a second, and prints protocol events (peers joining, leader elections, collisions, STOP and RESTART) on separate lines above it.
+
+### Example: five pendulums that collide
+
+Start five nodes, each in its own terminal and in this order, so they take ports `7700` to `7704` and hang 100 units apart:
+
+```sh
+cd nodes
+npm start                                 # node-7700
+npm start -- --length=80 --angle=50       # node-7701
+npm start -- --angle=30                   # node-7702
+npm start                                 # node-7703
+npm start                                 # node-7704
+```
+
+The nodes find each other and elect `node-7704`, the highest ID, as leader. Start them all, either with **Start** in the web UI or with curl:
+
+```sh
+for port in 7700 7701 7702 7703 7704; do curl -s -X POST localhost:$port/start & done; wait
+```
+
+`node-7701` swings faster than its neighbours, and about 9 seconds later its bob hits `node-7702`'s. The leader then stops every node, collects RESTART from all of them, and 5 seconds later they all swing again from their initial angles. Because the setup is the same, the cycle repeats.
+
+To watch a node's view of the cluster (term, leader, peers, RESTART barrier):
+
+```sh
+curl http://localhost:7700/protocol-status
+```
+
+Killing a node does not stop the others: its peers suspect it after 2 seconds of silence and drop it after 10. If it was the leader, the highest remaining node takes over.
 
 ## Running the web UI
 
