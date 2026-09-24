@@ -464,7 +464,7 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 **Note on peer config**: For collision detection, each node needs to know other nodes' lengths and anchor positions. This can be:
 - Option A: Include config in `POSITION` messages (more bandwidth)
 - Option B: Include config in `JOIN_RESPONSE` and assume it doesn't change during simulation
-- Recommendation: Use Option B for simplicity; config changes require re-join or explicit config broadcast
+- Approved recommendation: Use Option B for simplicity; config changes require re-join or explicit config broadcast
 
 ### 4.5 STOP/RESTART Protocol
 
@@ -530,6 +530,10 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
   - [ ] Log election results: "Elected leader: node-7700 (term 3)"
   - [ ] Log collision events: "Collision detected with node-7702"
   - [ ] Log protocol transitions: "STOP received (term 4), stopping simulation", "RESTART barrier satisfied, restarting in 5s"
+
+### 4.7 README Update
+
+- [ ] Update the example scenario in the README so that it will cause a collision some time after starting
 
 **Testable outcome:**
 - Start 5 nodes sequentially (they auto-assign ports 7700-7704)
