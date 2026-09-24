@@ -1075,6 +1075,14 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 - [ ] Recording and playback of simulations
 - [ ] Multi-user collaboration (multiple browsers controlling the same simulation)
 - [ ] Deployment scripts for cloud hosting (AWS, Docker, etc.)
+- [ ] Revisit node CPU usage from POSITION traffic, investigate, and optimize if necessary
+  - [ ] Measured with 5 nodes: ~24% of a core per node, ~4% without POSITION messages; idle nodes cost the same as running ones
+  - [ ] Cost is per request, not payload size (a 1 KB padded payload made no difference); most of it is `fetch` overhead
+  - [ ] `AbortSignal.timeout()` in `sendMessage` leaves a 500 ms timer per request that fires after success (~13% of busy time); clear it instead
+  - [ ] Try `node:http` with a shared keep-alive agent in place of `fetch`, and re-measure
+  - [ ] Skip POSITION while the angle is unchanged (helps only when not running)
+  - [ ] If still too costly, consider SSE for POSITION (stays HTTP and push-based); WebSocket or UDP depart further from "JSON over HTTP" [coordination:1]
+  - [ ] Avoid lowering the send rate unless needed: every 2nd tick only saved ~25% and makes cached positions staler
 
 ---
 
