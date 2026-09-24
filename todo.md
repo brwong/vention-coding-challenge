@@ -288,13 +288,13 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 3.3 State Polling
 
-- [ ] Create `src/services/nodeState.ts`
-  - [ ] Define `PendulumStatus` interface matching the `/status` API response
-  - [ ] Implement `fetchNodeStatus(port: number): Promise<PendulumStatus>`
-  - [ ] Implement `pollNodeStates(nodes: NodeInfo[], intervalMs: number, callback: (statuses: Map<string, PendulumStatus>) => void): () => void`
-    - [ ] Fetch status from all active nodes at regular intervals
-    - [ ] Use faster polling when simulation is running (e.g., 100ms), slower when stopped (e.g., 1000ms)
-    - [ ] Return cleanup function to stop polling
+- [x] Create `src/services/nodeState.ts`
+  - [x] Define `PendulumStatus` interface matching the `/status` API response
+  - [x] Implement `fetchNodeStatus(port: number): Promise<PendulumStatus>`
+  - [x] Implement `pollNodeStates(nodes: NodeInfo[], intervalMs: number, callback: (statuses: Map<string, PendulumStatus>) => void): () => void`
+    - [x] Fetch status from all active nodes at regular intervals
+    - [x] Use faster polling when simulation is running (e.g., 100ms), slower when stopped (e.g., 1000ms)
+    - [x] Return cleanup function to stop polling
 
 ### 3.4 Visualization Component
 
