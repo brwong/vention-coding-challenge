@@ -34,7 +34,7 @@ curl -X PUT http://localhost:7700/config \
   -d '{"angle": 30, "mass": 35}'            # resets the pendulum to the new initial angle
 ```
 
-The node's terminal redraws a one-line status summary every second.
+The node's terminal redraws a one-line status summary (angle, bob position and lifecycle) twice a second.
 
 ## Running the web UI
 

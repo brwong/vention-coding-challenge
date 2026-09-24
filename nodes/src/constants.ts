@@ -9,7 +9,10 @@ export const HOST = "127.0.0.1";
 export const BASE_PORT = 7700;
 export const MAX_PORT_SEARCH = 100; // prevent infinite loop
 
-export const STATUS_LOG_INTERVAL_MS = 1000;
+export const STATUS_LOG_INTERVAL_MS = 500;
+
+export const SPACING = 100; // default distance between hinges
+export const HINGE_Y = 0; // all hinges share one height; positive y points down
 
 export const PHYSICS_HZ = 60;
 export const DT = 1 / PHYSICS_HZ;

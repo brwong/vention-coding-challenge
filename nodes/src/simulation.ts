@@ -1,11 +1,11 @@
-import type { CliOptions } from "./config";
+import type { Config } from "./config";
 import { PHYSICS_HZ } from "./constants";
 import { type PendulumState, createPendulum, updatePendulum } from "./physics";
 
 // `ready` is the configured-but-never-started state a node boots into.
 export type Lifecycle = "ready" | "running" | "paused" | "stopped" | "restarting";
 
-export type PendulumConfig = CliOptions;
+export type PendulumConfig = Omit<Config, "port" | "nodeId">;
 
 /** One node's pendulum: its configuration, physics state and lifecycle. */
 export class Simulation {

@@ -1,19 +1,22 @@
 import type { Config } from "./config";
-import { STATUS_LOG_INTERVAL_MS } from "./constants";
+import { HINGE_Y, STATUS_LOG_INTERVAL_MS } from "./constants";
+import { calculateBobRadius, getPosition } from "./physics";
 import type { Simulation } from "./simulation";
 
 export function logStartup(config: Config): void {
-  const x = config.x ?? "auto";
+  const radius = calculateBobRadius(config.mass).toFixed(1);
   console.log(`Pendulum Node ${config.nodeId} started on port ${config.port}`);
   console.log(
-    `Config: x=${x}, length=${config.length}, mass=${config.mass}, angle=${config.angle}°`,
+    `Config: x=${config.x}, length=${config.length}, mass=${config.mass} (radius=${radius}), angle=${config.angle}°`,
   );
 }
 
 export function formatStatus(nodeId: string, simulation: Simulation): string {
-  const angleDeg = (simulation.state.angle * 180) / Math.PI;
-  const lifecycle = simulation.lifecycle;
-  return `[${nodeId}] angle: ${angleDeg.toFixed(1)}°, running: ${lifecycle === "running"}, lifecycle: ${lifecycle}`;
+  const { state, config, lifecycle } = simulation;
+  const angleDeg = (state.angle * 180) / Math.PI;
+  const bob = getPosition(state, config.x, HINGE_Y, config.length);
+  const position = `(${bob.x.toFixed(1)}, ${bob.y.toFixed(1)})`;
+  return `[${nodeId}] angle: ${angleDeg.toFixed(1)}°, bob: ${position}, running: ${lifecycle === "running"}, lifecycle: ${lifecycle}`;
 }
 
 /**

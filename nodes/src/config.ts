@@ -6,6 +6,7 @@ import {
   DEFAULT_LENGTH,
   DEFAULT_MASS,
   HOST,
+  SPACING,
   MAX_ANGLE_DEG,
   MAX_LENGTH,
   MAX_MASS,
@@ -16,7 +17,7 @@ import {
 } from "./constants";
 
 export interface Config {
-  x?: number; // hinge x-coordinate (optional, assigned from join order if omitted)
+  x: number; // hinge x-coordinate (from --x, or spaced by port order if omitted)
   length: number; // pendulum length (default: DEFAULT_LENGTH)
   mass: number; // bob mass (default: DEFAULT_MASS)
   angle: number; // initial angle in degrees (default: DEFAULT_ANGLE_DEG)
@@ -24,7 +25,7 @@ export interface Config {
   nodeId: string; // derived from port: `node-7701`
 }
 
-export type CliOptions = Omit<Config, "port" | "nodeId">;
+export type CliOptions = Omit<Config, "port" | "nodeId" | "x"> & { x?: number };
 
 export interface LoadedConfig {
   config: Config;
@@ -40,7 +41,7 @@ export const USAGE = `Usage: npm start -- [options]
 Starts a pendulum node on the first free port from ${BASE_PORT}.
 
 Options:
-  --x <number>       Hinge x-coordinate (default: assigned from join order)
+  --x <number>       Hinge x-coordinate (default: spaced ${SPACING} apart by port order)
   --length <number>  Pendulum length, ${MIN_LENGTH} to ${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
   --mass <number>    Bob mass, ${MIN_MASS} to ${MAX_MASS} (default: ${DEFAULT_MASS})
   --angle <number>   Initial angle in degrees, ${MIN_ANGLE_DEG} to ${MAX_ANGLE_DEG} (default: ${DEFAULT_ANGLE_DEG})
@@ -205,7 +206,13 @@ export async function loadConfig(argv = process.argv.slice(2)): Promise<LoadedCo
 
   const { server, port } = await listenOnAvailablePort();
   return {
-    config: { ...options, port, nodeId: `node-${port}` },
+    config: {
+      ...options,
+      // Ports are claimed in start-up order, so they give a regular spacing.
+      x: options.x ?? (port - BASE_PORT) * SPACING,
+      port,
+      nodeId: `node-${port}`,
+    },
     server,
   };
 }

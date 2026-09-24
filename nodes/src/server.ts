@@ -25,7 +25,7 @@ const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 function configBody(config: PendulumConfig) {
   return {
-    x: config.x ?? null,
+    x: config.x,
     length: config.length,
     mass: config.mass,
     angle: config.angle,
