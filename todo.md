@@ -2,6 +2,8 @@
 
 This document outlines the phased implementation plan for the distributed pendulum simulation. Each section is independently runnable and manually testable.
 
+Do not mention this document in commit messages or code (comments). Check off items as they are completed, and include this file in the commit.
+
 **Key constraints from spec documents:**
 - Base port: `7700`, auto-increment on conflict (no `--port` flag) [interfaces:1]
 - CLI flags: `--x`, `--length`, `--mass`, `--angle` only [interfaces:1]
@@ -17,35 +19,35 @@ This document outlines the phased implementation plan for the distributed pendul
 
 **Goal:** Establish the basic project structure with minimal working stubs for both the node servers and web UI.
 
-- [ ] Create project root directory structure
-  - [ ] `/nodes` - directory for Node.js pendulum servers
-  - [ ] `/web` - directory for React web UI
-  - [ ] `/docs` - directory for documentation (interfaces.md, coordination.md, physics.md already exist)
+- [x] Create project root directory structure
+  - [x] `/nodes` - directory for Node.js pendulum servers
+  - [x] `/web` - directory for React web UI
+  - [x] `/docs` - directory for documentation (interfaces.md, coordination.md, physics.md already exist)
 
-- [ ] Initialize Node.js project in `/nodes`
-  - [ ] Run `npm init -y` to create package.json
-  - [ ] Install TypeScript: `npm install --save-dev typescript @types/node`
-  - [ ] Install argument parser: `npm install --save minimist` and `npm install --save-dev @types/minimist`
-  - [ ] Create `tsconfig.json` with basic Node.js configuration
-  - [ ] Create `src/index.ts` with a simple "Hello from pendulum node" console.log statement
-  - [ ] Add npm script: `"start": "ts-node src/index.ts"` or `"build": "tsc"` + `"start": "node dist/index.js"`
+- [x] Initialize Node.js project in `/nodes`
+  - [x] Run `npm init -y` to create package.json
+  - [x] Install TypeScript: `npm install --save-dev typescript @types/node`
+  - [x] Install argument parser: `npm install --save minimist` and `npm install --save-dev @types/minimist`
+  - [x] Create `tsconfig.json` with basic Node.js configuration
+  - [x] Create `src/index.ts` with a simple "Hello from pendulum node" console.log statement
+  - [x] Add npm script: `"start": "ts-node src/index.ts"` or `"build": "tsc"` + `"start": "node dist/index.js"`
 
-- [ ] Initialize React project in `/web`
-  - [ ] Run `npm create vite@latest . -- --template react-ts` (or equivalent)
-  - [ ] Install dependencies
-  - [ ] Modify `src/App.tsx` to display only the word "Pendulum" on screen
-  - [ ] Add npm scripts: `"dev": "vite"`, `"build": "tsc && vite build"`, `"preview": "vite preview"`
+- [x] Initialize React project in `/web`
+  - [x] Run `npm create vite@latest . -- --template react-ts` (or equivalent)
+  - [x] Install dependencies
+  - [x] Modify `src/App.tsx` to display only the word "Pendulum" on screen
+  - [x] Add npm scripts: `"dev": "vite"`, `"build": "tsc && vite build"`, `"preview": "vite preview"`
 
-- [ ] Create `.gitignore` files
-  - [ ] Root `.gitignore`: `node_modules/`, `dist/`, `.env`, `*.log`, `DS_Store`, `coverage/`
-  - [ ] Or separate `.gitignore` in `/nodes` and `/web` with appropriate entries
+- [x] Create `.gitignore` files
+  - [x] Root `.gitignore`: `node_modules/`, `dist/`, `.env`, `*.log`, `DS_Store`, `coverage/`
+  - [x] Or separate `.gitignore` in `/nodes` and `/web` with appropriate entries
 
-- [ ] Create root `README.md`
-  - [ ] Project title and brief description
-  - [ ] Instructions to start a node server: `cd nodes && npm install && npm start [--x <number> --length <number> --mass <number> --angle <number>]`
-  - [ ] Note: Nodes auto-bind to first available port starting at 7700
-  - [ ] Instructions to start the web UI: `cd web && npm install && npm run dev`
-  - [ ] Nothing more at this stage
+- [x] Create root `README.md`
+  - [x] Project title and brief description
+  - [x] Instructions to start a node server: `cd nodes && npm install && npm start [--x <number> --length <number> --mass <number> --angle <number>]`
+  - [x] Note: Nodes auto-bind to first available port starting at 7700
+  - [x] Instructions to start the web UI: `cd web && npm install && npm run dev`
+  - [x] Nothing more at this stage
 
 **Testable outcome:**
 - Running `npm start` in `/nodes` prints "Hello from pendulum node" to console
