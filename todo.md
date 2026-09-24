@@ -13,6 +13,8 @@ Do not mention this document in commit messages or code (comments). Check off it
 - UI: SVG rendering, HTTP polling only, no WebSockets [interfaces:1]
 - Coordination: Leader/lease/election, term-based STOP/RESTART, quorum barrier [coordination:1]
 
+If applicable, read the documentation in the `docs` folder - don't guess or invent the system from scratch.
+
 ---
 
 ## Section 1: Project Bootstrapping
@@ -217,6 +219,7 @@ Do not mention this document in commit messages or code (comments). Check off it
   - [ ] Log configuration: "Config: x=[x], length=[length], mass=[mass], angle=[angle]°"
   - [ ] Every N seconds (e.g., 5s): log current state summary
     - [ ] Format: `[node-7701] angle: 23.4°, running: true, lifecycle: running`
+    - [ ] Overwrite the text in the terminal, so it's not a flowing stream of new values
   - [ ] Log API requests at debug level (optional, use `console.debug`)
 
 ### 2.6 Main Entry Point
