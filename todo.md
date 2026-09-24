@@ -298,39 +298,39 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 3.4 Visualization Component
 
-- [ ] Create `src/components/PendulumCanvas.tsx`
-  - [ ] Accept props: `{ nodes: NodeInfo[], statuses: Map<string, PendulumStatus> }`
-  - [ ] Use SVG for rendering (required by interfaces.md)
-  - [ ] Calculate viewBox to fit all pendulums:
-    - [ ] Find min/max x from all anchors
-    - [ ] Add padding for swing arc
-  - [ ] For each node:
-    - [ ] Draw the anchor point (small circle or cross at `x`, `anchorY`)
-    - [ ] Draw the string/rod (line from anchor to bob center)
-    - [ ] Draw the bob (circle at calculated x, y position)
-    - [ ] Use different colors per nodeId for distinction
-    - [ ] Color-code based on lifecycle state (running=green, paused=yellow, stopped=red)
-  - [ ] Scale coordinates to fit the SVG viewport appropriately
+- [x] Create `src/components/PendulumCanvas.tsx`
+  - [x] Accept props: `{ nodes: NodeInfo[], statuses: Map<string, PendulumStatus> }`
+  - [x] Use SVG for rendering (required by interfaces.md)
+  - [x] Calculate viewBox to fit all pendulums:
+    - [x] Find min/max x from all anchors
+    - [x] Add padding for swing arc
+  - [x] For each node:
+    - [x] Draw the anchor point (small circle or cross at `x`, `anchorY`)
+    - [x] Draw the string/rod (line from anchor to bob center)
+    - [x] Draw the bob (circle at calculated x, y position)
+    - [x] Use different colors per nodeId for distinction
+    - [x] Color-code based on lifecycle state (running=green, paused=yellow, stopped=red)
+  - [x] Scale coordinates to fit the SVG viewport appropriately
 
-- [ ] Create `src/components/NodeList.tsx`
-  - [ ] Display a list of discovered nodes with:
-    - [ ] Node ID (primary identity, e.g., "node-7701")
-    - [ ] Port (supporting/debug info)
-    - [ ] Lifecycle state (running, paused, stopped)
-    - [ ] Last update timestamp
-  - [ ] Highlight the currently selected node
+- [x] Create `src/components/NodeList.tsx`
+  - [x] Display a list of discovered nodes with:
+    - [x] Node ID (primary identity, e.g., "node-7701")
+    - [x] Port (supporting/debug info)
+    - [x] Lifecycle state (running, paused, stopped)
+    - [x] Last update timestamp
+  - [x] Highlight the currently selected node
 
-- [ ] Create `src/components/NodeSelector.tsx`
-  - [ ] Allow user to select a node from the discovered list
-  - [ ] Show selection state visually
+- [x] Create `src/components/NodeSelector.tsx`
+  - [x] Allow user to select a node from the discovered list
+  - [x] Show selection state visually
 
-- [ ] Update `src/App.tsx`
-  - [ ] Import and use `PendulumCanvas`, `NodeList`, `NodeSelector`
-  - [ ] Set up React state for `nodes` and `statuses`
-  - [ ] Use `useEffect` to start node discovery on mount
-  - [ ] Use `useEffect` to poll node states and update rendering
-  - [ ] Display "No nodes found" if scan returns empty
-  - [ ] Track selected node in state
+- [x] Update `src/App.tsx`
+  - [x] Import and use `PendulumCanvas`, `NodeList`, `NodeSelector`
+  - [x] Set up React state for `nodes` and `statuses`
+  - [x] Use `useEffect` to start node discovery on mount
+  - [x] Use `useEffect` to poll node states and update rendering
+  - [x] Display "No nodes found" if scan returns empty
+  - [x] Track selected node in state
 
 ### 3.5 Basic Controls
 

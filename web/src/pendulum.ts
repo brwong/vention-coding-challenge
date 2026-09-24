@@ -1,0 +1,39 @@
+import type { Lifecycle } from './services/nodeState'
+
+// Matches the nodes: every hinge sits at y = 0 and positive y points down,
+// which is also SVG's orientation.
+export const HINGE_Y = 0
+
+export interface Point {
+  x: number
+  y: number
+}
+
+/** Radius of a unit-density sphere, where mass equals volume. */
+export function bobRadius(mass: number): number {
+  return Math.cbrt((3 * mass) / (4 * Math.PI))
+}
+
+export function bobPosition(hingeX: number, length: number, angle: number): Point {
+  return {
+    x: hingeX + length * Math.sin(angle),
+    y: HINGE_Y + length * Math.cos(angle),
+  }
+}
+
+export const LIFECYCLE_COLORS: Record<Lifecycle, string> = {
+  ready: '#64748b',
+  running: '#16a34a',
+  paused: '#ca8a04',
+  stopped: '#dc2626',
+  restarting: '#ea580c',
+}
+
+export const UNREACHABLE_COLOR = '#94a3b8'
+
+const NODE_COLORS = ['#2563eb', '#9333ea', '#0891b2', '#db2777', '#4f46e5', '#0d9488']
+
+/** A stable color per node, so a pendulum keeps its color across rescans. */
+export function nodeColor(port: number): string {
+  return NODE_COLORS[port % NODE_COLORS.length]
+}

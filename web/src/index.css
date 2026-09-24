@@ -1,8 +1,121 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --bg: #ffffff;
+  --surface: #f1f5f9;
+  --border: #cbd5e1;
+  --accent: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e2e8f0;
+    --muted: #94a3b8;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --accent: #60a5fa;
+  }
 }
 
 body {
   margin: 0;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.app {
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+}
+
+main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.empty,
+.muted {
+  color: var(--muted);
+}
+
+.pendulum-canvas {
+  flex: 1 1 480px;
+  max-height: 70vh;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.pendulum-canvas .hinge {
+  fill: var(--fg);
+}
+
+.pendulum-canvas .rod {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+
+.pendulum-canvas .label {
+  fill: var(--muted);
+  font-size: 8px;
+}
+
+.pendulum-canvas .selected .label {
+  fill: var(--fg);
+  font-weight: 600;
+}
+
+.node-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+button.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.node-list {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.node-list th,
+.node-list td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.node-list tr.selected {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
 }
