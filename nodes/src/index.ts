@@ -7,7 +7,7 @@ import { MembershipService } from "./services/membershipService";
 import { PositionService } from "./services/positionService";
 import { ProtocolService } from "./services/protocolService";
 import { Simulation } from "./simulation";
-import { logStartup, startStatusLogger } from "./terminal";
+import { logEvent, logStartup, startStatusLogger } from "./terminal";
 
 async function main(): Promise<void> {
   const loaded = await loadConfig();
@@ -38,7 +38,8 @@ async function main(): Promise<void> {
   });
 
   logStartup(config);
-  await membership.probeLowerPorts();
+  const peers = await membership.probeLowerPorts();
+  logEvent(`Discovered peers: [${peers.map((peer) => peer.nodeId).join(", ")}]`);
   const stopHeartbeat = membership.startHeartbeat(
     () => election.heartbeat(),
     HEARTBEAT_INTERVAL_MS,

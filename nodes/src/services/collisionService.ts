@@ -2,6 +2,7 @@ import { portFromNodeId } from "../config";
 import { HINGE_Y } from "../constants";
 import { type Bob, checkCollision } from "../physics";
 import type { Simulation } from "../simulation";
+import { logEvent } from "../terminal";
 import type { ElectionService } from "./electionService";
 import type { MembershipService, Peer } from "./membershipService";
 import { type CollisionDetectedMessage, sendMessage } from "./messages";
@@ -58,6 +59,7 @@ export class CollisionService {
     const leaderPort = portFromNodeId(leaderId);
     if (leaderPort === null) return;
     this.reportedTerm = currentTerm;
+    logEvent(`Collision detected with ${peer.nodeId}; reporting to leader ${leaderId}`);
     // The leader may be this node; it then handles the report like any other.
     void this.sendCollisionDetected(leaderPort, currentTerm);
   }

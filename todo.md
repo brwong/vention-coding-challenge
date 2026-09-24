@@ -525,11 +525,11 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 4.6 Terminal Status Updates
 
-- [ ] Extend terminal logging
-  - [ ] Log peer discovery: "Discovered peers: [node-7700, node-7701]"
-  - [ ] Log election results: "Elected leader: node-7700 (term 3)"
-  - [ ] Log collision events: "Collision detected with node-7702"
-  - [ ] Log protocol transitions: "STOP received (term 4), stopping simulation", "RESTART barrier satisfied, restarting in 5s"
+- [x] Extend terminal logging
+  - [x] Log peer discovery: "Discovered peers: [node-7700, node-7701]"
+  - [x] Log election results: "Elected leader: node-7700 (term 3)"
+  - [x] Log collision events: "Collision detected with node-7702"
+  - [x] Log protocol transitions: "STOP received (term 4), stopping simulation", "RESTART barrier satisfied, restarting in 5s"
 
 ### 4.7 README Update
 

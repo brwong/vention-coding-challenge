@@ -1,5 +1,6 @@
 import { portFromNodeId } from "../config";
 import { ELECTION_CHECK_INTERVAL_MS, ELECTION_JITTER_MS, ELECTION_TIMEOUT_MS } from "../constants";
+import { logEvent } from "../terminal";
 import type { MembershipService } from "./membershipService";
 import type { ElectionRequest, ElectionResponse, HeartbeatMessage } from "./messages";
 
@@ -61,8 +62,16 @@ export class ElectionService {
     if (term <= this.currentTerm) return false;
     this.currentTerm = term;
     this.votedFor = null;
-    this.leaderId = leaderId;
+    this.setLeader(leaderId);
     return true;
+  }
+
+  private setLeader(leaderId: string | null): void {
+    if (leaderId !== null && leaderId !== this.leaderId) {
+      const self = leaderId === this.nodeId ? " (this node)" : "";
+      logEvent(`Elected leader: ${leaderId}${self} (term ${this.currentTerm})`);
+    }
+    this.leaderId = leaderId;
   }
 
   /** Starts a new term led by this node; used by the leader for each STOP. */
@@ -104,6 +113,7 @@ export class ElectionService {
       const term = ++this.currentTerm;
       this.votedFor = this.nodeId;
       this.leaderId = null;
+      logEvent(`No leader heard from; starting election (term ${term})`);
       const clusterSize = this.membership.peers.size + 1;
 
       const request: ElectionRequest = { type: "ELECTION_REQUEST", nodeId: this.nodeId, term };
@@ -118,7 +128,7 @@ export class ElectionService {
       const outranked = current.some((r) => r.voteFor !== null && r.voteFor !== this.nodeId);
       const votes = 1 + current.filter((r) => r.voteFor === this.nodeId).length;
       if (!outranked && votes > clusterSize / 2) {
-        this.leaderId = this.nodeId;
+        this.setLeader(this.nodeId);
         void this.sendHeartbeat();
       }
       return this.leaderId;
@@ -161,11 +171,11 @@ export class ElectionService {
   }
 
   handleHeartbeat(message: HeartbeatMessage): void {
-    this.adoptTerm(message.term);
+    this.adoptTerm(message.term, message.isLeader ? message.nodeId : null);
     if (!message.isLeader || message.term < this.currentTerm) return;
     // Two leaders in one term: the higher ID keeps it.
     if (this.isLeader && compareNodeIds(this.nodeId, message.nodeId) > 0) return;
-    this.leaderId = message.nodeId;
+    this.setLeader(message.nodeId);
     this.resetElectionTimer();
   }
 

@@ -5,6 +5,7 @@ import {
   STOP_TO_RESTART_DELAY_MS,
 } from "../constants";
 import type { Lifecycle, Simulation } from "../simulation";
+import { logEvent } from "../terminal";
 import type { ElectionService } from "./electionService";
 import type { MembershipService } from "./membershipService";
 import type { CollisionDetectedMessage, RestartMessage, StopMessage } from "./messages";
@@ -60,6 +61,7 @@ export class ProtocolService {
       return { accepted: false };
     }
     const term = this.election.bumpTerm();
+    logEvent(`Collision reported by ${message.nodeId}; broadcasting STOP (term ${term})`);
     this.enterStopped(term);
     void this.stopThenRestart(term);
     return { accepted: true };
@@ -87,6 +89,7 @@ export class ProtocolService {
     // the last STOP obeyed as well as the current term.
     if (message.term < this.election.currentTerm || message.term <= this.stoppedTerm) return;
     this.election.adoptTerm(message.term, message.from);
+    logEvent(`STOP received from ${message.from} (term ${message.term}), stopping simulation`);
     this.enterStopped(message.term);
   }
 
@@ -105,6 +108,7 @@ export class ProtocolService {
     if (message.term > this.stoppedTerm) {
       // This RESTART overtook its STOP.
       this.election.adoptTerm(message.term);
+      logEvent(`RESTART received before STOP (term ${message.term}), stopping simulation`);
       this.enterStopped(message.term);
     }
     if (message.term <= this.restartedTerm) return;
@@ -113,6 +117,9 @@ export class ProtocolService {
     const echo = !this.restartBarrier.has(this.nodeId);
     this.restartBarrier.add(message.from);
     if (echo) {
+      logEvent(
+        `Sending RESTART (term ${message.term}); waiting for RESTART from ${this.quorumSize} nodes`,
+      );
       this.restartBarrier.add(this.nodeId);
       void this.broadcastRestart(message.term);
     }
@@ -124,10 +131,17 @@ export class ProtocolService {
     if (term !== this.stoppedTerm || term <= this.restartedTerm) return;
     this.restartedTerm = term;
     clearTimeout(this.barrierTimer);
+    const heard = `${this.restartBarrier.size}/${this.quorumSize}`;
+    const outcome = this.restartBarrier.size >= this.quorumSize ? "satisfied" : "timed out";
+    logEvent(
+      `RESTART barrier ${outcome} (${heard} nodes, term ${term}), restarting in ${RESTART_DELAY_MS / 1000}s`,
+    );
     this.simulation.beginRestart();
     this.restartTimer = setTimeout(() => {
       // The UI may have paused or stopped the node during the countdown.
-      if (this.simulation.lifecycle === "restarting") this.simulation.start();
+      if (this.simulation.lifecycle !== "restarting") return;
+      this.simulation.start();
+      logEvent(`Simulation restarted (term ${term})`);
     }, RESTART_DELAY_MS);
   }
 

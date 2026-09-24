@@ -1,5 +1,6 @@
 import { portFromNodeId } from "../config";
 import { BASE_PORT, PEER_SUSPECT_MS, PEER_TIMEOUT_MS } from "../constants";
+import { logEvent } from "../terminal";
 import {
   type HeartbeatMessage,
   type JoinMessage,
@@ -25,6 +26,7 @@ export interface Peer {
 export class MembershipService {
   readonly peers = new Map<string, Peer>();
   private readonly joining = new Set<number>();
+  private readonly suspected = new Set<string>(); // peers already logged as suspected
 
   constructor(
     private readonly self: PeerAddress,
@@ -36,7 +38,9 @@ export class MembershipService {
   }
 
   private addPeer(nodeId: string, port: number, config: PeerConfig): void {
+    if (!this.peers.has(nodeId)) logEvent(`Peer joined: ${nodeId}`);
     this.peers.set(nodeId, { nodeId, port, config, lastHeartbeat: Date.now() });
+    this.suspected.delete(nodeId);
   }
 
   /**
@@ -105,6 +109,7 @@ export class MembershipService {
     const peer = this.peers.get(nodeId);
     if (peer) {
       peer.lastHeartbeat = Date.now();
+      if (this.suspected.delete(nodeId)) logEvent(`Peer ${nodeId} is responding again`);
       return;
     }
     const port = portFromNodeId(nodeId);
@@ -115,12 +120,17 @@ export class MembershipService {
     return now - peer.lastHeartbeat > PEER_SUSPECT_MS;
   }
 
-  /** Removes peers that have been silent longer than PEER_TIMEOUT_MS. */
-  private removeDeadPeers(): void {
+  /** Logs newly suspected peers and removes those silent longer than PEER_TIMEOUT_MS. */
+  private checkPeerHealth(): void {
     const now = Date.now();
     for (const peer of this.peers.values()) {
       if (now - peer.lastHeartbeat > PEER_TIMEOUT_MS) {
         this.peers.delete(peer.nodeId);
+        this.suspected.delete(peer.nodeId);
+        logEvent(`Removed peer ${peer.nodeId}: no heartbeat for ${PEER_TIMEOUT_MS / 1000}s`);
+      } else if (this.isSuspected(peer, now) && !this.suspected.has(peer.nodeId)) {
+        this.suspected.add(peer.nodeId);
+        logEvent(`Peer ${peer.nodeId} suspected dead: no heartbeat for ${PEER_SUSPECT_MS / 1000}s`);
       }
     }
   }
@@ -142,7 +152,7 @@ export class MembershipService {
   startHeartbeat(buildHeartbeat: () => HeartbeatMessage, intervalMs: number): () => void {
     const timer = setInterval(() => {
       void this.broadcast(buildHeartbeat());
-      this.removeDeadPeers();
+      this.checkPeerHealth();
       void this.probeLowerPorts();
     }, intervalMs);
     return () => clearInterval(timer);
