@@ -258,14 +258,14 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 3.2 Node Discovery (Port Scanning)
 
-- [ ] Create `src/services/nodeDiscovery.ts`
-  - [ ] Define constants:
+- [x] Create `src/services/nodeDiscovery.ts`
+  - [x] Define constants:
     ```ts
     const BASE_PORT = 7700;
     const MAX_CONSECUTIVE_MISSES = 10; // from interfaces.md
     const SCAN_INTERVAL_MS = 5000;
     ```
-  - [ ] Define `NodeInfo` interface:
+  - [x] Define `NodeInfo` interface:
     ```ts
     interface NodeInfo {
       nodeId: string; // e.g., "node-7701"
@@ -275,16 +275,16 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
       lastSeen: number; // timestamp
     }
     ```
-  - [ ] Implement `scanForNodes(): Promise<NodeInfo[]>`
-    - [ ] Start at port 7700, increment sequentially
-    - [ ] For each port, attempt `fetch(\`http://127.0.0.1:\${port}/status\`, { signal: AbortSignal.timeout(500) })`
-    - [ ] If successful, parse response and add to results with `nodeId`, `port`, `x`, etc.
-    - [ ] Stop after `MAX_CONSECUTIVE_MISSES` consecutive failures
-    - [ ] Handle timeouts and network errors gracefully
-  - [ ] Implement `startPeriodicScan(callback: (nodes: NodeInfo[]) => void): () => void`
-    - [ ] Run `scanForNodes()` every `SCAN_INTERVAL_MS`
-    - [ ] Call callback with updated node list
-    - [ ] Return cleanup function to stop scanning
+  - [x] Implement `scanForNodes(): Promise<NodeInfo[]>`
+    - [x] Start at port 7700, increment sequentially
+    - [x] For each port, attempt `fetch(\`http://127.0.0.1:\${port}/status\`, { signal: AbortSignal.timeout(500) })`
+    - [x] If successful, parse response and add to results with `nodeId`, `port`, `x`, etc.
+    - [x] Stop after `MAX_CONSECUTIVE_MISSES` consecutive failures
+    - [x] Handle timeouts and network errors gracefully
+  - [x] Implement `startPeriodicScan(callback: (nodes: NodeInfo[]) => void): () => void`
+    - [x] Run `scanForNodes()` every `SCAN_INTERVAL_MS`
+    - [x] Call callback with updated node list
+    - [x] Return cleanup function to stop scanning
 
 ### 3.3 State Polling
 
