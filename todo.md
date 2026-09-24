@@ -251,10 +251,10 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 3.1 Web UI Setup
 
-- [ ] Clean up `/web` Vite project
-  - [ ] Remove default Vite/CSS boilerplate
-  - [ ] Keep minimal styling
-  - [ ] Ensure app runs on a different port than nodes (e.g., 5173 by default with Vite)
+- [x] Clean up `/web` Vite project
+  - [x] Remove default Vite/CSS boilerplate
+  - [x] Keep minimal styling
+  - [x] Ensure app runs on a different port than nodes (e.g., 5173 by default with Vite)
 
 ### 3.2 Node Discovery (Port Scanning)
 
