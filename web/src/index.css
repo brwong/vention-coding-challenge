@@ -139,3 +139,55 @@ button.selected {
   margin-right: 6px;
   border-radius: 50%;
 }
+
+.config-form {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.config-form h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.config-form .field {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  align-items: center;
+  gap: 2px 8px;
+}
+
+.config-form input[type='number'] {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  min-width: 0;
+}
+
+.config-form input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.field-error {
+  grid-column: 2;
+  font-size: 0.8rem;
+  color: #dc2626;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.form-error {
+  margin: 0;
+  color: #dc2626;
+}

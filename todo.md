@@ -557,16 +557,16 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 5.1 Configuration Form
 
-- [ ] Create `src/components/NodeConfigForm.tsx`
-  - [ ] Accept props: `{ nodeId: string, currentConfig: Config, onApply: (config: Partial<Config>) => Promise<void> }`
-  - [ ] Inputs for:
-    - [ ] Hinge x-position (number input)
-    - [ ] Length (number input, validate > 0)
-    - [ ] Mass (number input, validate > 0)
-    - [ ] Initial angle (number input or slider, validate -180 to 180)
-  - [ ] "Apply" button sends `PUT /config` to selected node with all values in one request
-  - [ ] Show loading state during apply
-  - [ ] Show error state if request fails
+- [x] Create `src/components/NodeConfigForm.tsx`
+  - [x] Accept props: `{ nodeId: string, currentConfig: Config, onApply: (config: Partial<Config>) => Promise<void> }`
+  - [x] Inputs for:
+    - [x] Hinge x-position (number input)
+    - [x] Length (number input, validate > 0)
+    - [x] Mass (number input, validate > 0)
+    - [x] Initial angle (number input or slider, validate -180 to 180)
+  - [x] "Apply" button sends `PUT /config` to selected node with all values in one request
+  - [x] Show loading state during apply
+  - [x] Show error state if request fails
 
 ### 5.2 Direct Manipulation (Dragging)
 

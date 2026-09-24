@@ -86,3 +86,18 @@ export async function sendCommand(port: number, command: LifecycleCommand): Prom
     throw new Error(`POST /${command} on port ${port} failed with ${response.status}`)
   }
 }
+
+/** Sends one PUT /config with every field. Throws with the node's error message on rejection. */
+export async function applyConfig(port: number, config: PendulumConfig): Promise<PendulumConfig> {
+  const response = await fetch(nodeUrl(port, '/config'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+    signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.error ?? `PUT /config on port ${port} failed with ${response.status}`)
+  }
+  return body
+}

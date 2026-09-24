@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
+import { NodeConfigForm } from './components/NodeConfigForm'
 import { NodeList } from './components/NodeList'
 import { NodeSelector } from './components/NodeSelector'
 import { PendulumCanvas } from './components/PendulumCanvas'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
 import {
   type LifecycleCommand,
+  type PendulumConfig,
   type PendulumStatus,
   RUNNING_POLL_INTERVAL_MS,
+  applyConfig,
   pollNodeStates,
   sendCommand,
 } from './services/nodeState'
@@ -90,9 +93,14 @@ function App() {
   }
 
   // Default to the first node, and drop a selection whose node is gone.
-  const selected = nodes.some((node) => node.nodeId === selectedNodeId)
-    ? selectedNodeId
-    : nodes[0]?.nodeId
+  const selectedNode = nodes.find((node) => node.nodeId === selectedNodeId) ?? nodes[0]
+  const selected = selectedNode?.nodeId
+  const selectedStatus = selected === undefined ? undefined : statuses.get(selected)
+
+  async function applySelectedConfig(config: PendulumConfig) {
+    await applyConfig(selectedNode.port, config)
+    setPollKey((key) => key + 1)
+  }
 
   return (
     <div className="app">
@@ -132,6 +140,20 @@ function App() {
               lastUpdated={lastUpdated}
               selectedNodeId={selected}
             />
+            {selectedStatus ? (
+              <NodeConfigForm
+                key={selected}
+                nodeId={selectedStatus.nodeId}
+                currentConfig={selectedStatus.config}
+                onApply={applySelectedConfig}
+              />
+            ) : (
+              selected && (
+                <p className="form-error">
+                  {selected} is unreachable; its configuration cannot be edited.
+                </p>
+              )
+            )}
           </aside>
         </main>
       )}

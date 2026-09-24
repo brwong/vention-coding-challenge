@@ -37,3 +37,14 @@ const NODE_COLORS = ['#2563eb', '#9333ea', '#0891b2', '#db2777', '#4f46e5', '#0d
 export function nodeColor(port: number): string {
   return NODE_COLORS[port % NODE_COLORS.length]
 }
+
+export type ConfigField = 'x' | 'length' | 'mass' | 'angle'
+
+// Mirrors the nodes' own limits so the form can reject values before sending
+// them; the node still validates every PUT /config.
+export const CONFIG_LIMITS: Record<ConfigField, { min: number; max: number }> = {
+  x: { min: -Infinity, max: Infinity },
+  length: { min: 10, max: 200 },
+  mass: { min: 35, max: 34000 },
+  angle: { min: -180, max: 180 },
+}
