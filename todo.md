@@ -224,13 +224,13 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 2.6 Main Entry Point
 
-- [ ] Update `src/index.ts`
-  - [ ] Import and call `loadConfig()`
-  - [ ] Initialize pendulum state using `createPendulum()`
-  - [ ] Start Express server on discovered port
-  - [ ] Start physics simulation loop (60 Hz)
-  - [ ] Start terminal status logger
-- [ ] Add an example usage scenario to the README
+- [x] Update `src/index.ts`
+  - [x] Import and call `loadConfig()`
+  - [x] Initialize pendulum state using `createPendulum()`
+  - [x] Start Express server on discovered port
+  - [x] Start physics simulation loop (60 Hz)
+  - [x] Start terminal status logger
+- [x] Add an example usage scenario to the README
 
 **Testable outcome:**
 - Running `npm start -- --angle=45 --length=200` starts a node server
