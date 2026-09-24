@@ -163,10 +163,10 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 2.4 REST API Server
 
-- [ ] Create `src/server.ts`
-  - [ ] Initialize Express app with CORS enabled (allow requests from web UI origin)
-  - [ ] Implement `GET /status` endpoint
-    - [ ] Returns:
+- [x] Create `src/server.ts`
+  - [x] Initialize Express app with CORS enabled (allow requests from web UI origin)
+  - [x] Implement `GET /status` endpoint
+    - [x] Returns:
       ```json
       {
         "nodeId": "node-7701",
@@ -187,30 +187,30 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
         "lifecycle": "running" | "paused" | "stopped" | "restarting"
       }
       ```
-  - [ ] Implement `GET /config` endpoint
-    - [ ] Returns current configuration: `{ x, length, mass, angle }`
-  - [ ] Implement `PUT /config` endpoint
-    - [ ] Accepts: `{ x?, length?, mass?, angle? }`
-    - [ ] Validate all values against constraints from physics.md
-    - [ ] Update configuration and reset pendulum state to new initial angle
-    - [ ] Returns updated configuration
-  - [ ] Implement `POST /start` endpoint
-    - [ ] Sets lifecycle state to `running`
-    - [ ] Starts physics simulation loop if not already running
-  - [ ] Implement `POST /pause` endpoint
-    - [ ] Sets lifecycle state to `paused`
-    - [ ] Stops physics updates but preserves current state
-  - [ ] Implement `POST /stop` endpoint
-    - [ ] Sets lifecycle state to `stopped`
-    - [ ] Stops physics updates
-  - [ ] Implement coordination endpoints (stubs for now, full implementation in Section 4):
-    - [ ] `POST /message` - accepts coordination messages (JOIN, HEARTBEAT, STOP, RESTART, POSITION, COLLISION_DETECTED, ELECTION_REQUEST, ELECTION_RESPONSE)
-    - [ ] `GET /protocol-status` - returns coordination state
+  - [x] Implement `GET /config` endpoint
+    - [x] Returns current configuration: `{ x, length, mass, angle }`
+  - [x] Implement `PUT /config` endpoint
+    - [x] Accepts: `{ x?, length?, mass?, angle? }`
+    - [x] Validate all values against constraints from physics.md
+    - [x] Update configuration and reset pendulum state to new initial angle
+    - [x] Returns updated configuration
+  - [x] Implement `POST /start` endpoint
+    - [x] Sets lifecycle state to `running`
+    - [x] Starts physics simulation loop if not already running
+  - [x] Implement `POST /pause` endpoint
+    - [x] Sets lifecycle state to `paused`
+    - [x] Stops physics updates but preserves current state
+  - [x] Implement `POST /stop` endpoint
+    - [x] Sets lifecycle state to `stopped`
+    - [x] Stops physics updates
+  - [x] Implement coordination endpoints (stubs for now, full implementation in Section 4):
+    - [x] `POST /message` - accepts coordination messages (JOIN, HEARTBEAT, STOP, RESTART, POSITION, COLLISION_DETECTED, ELECTION_REQUEST, ELECTION_RESPONSE)
+    - [x] `GET /protocol-status` - returns coordination state
 
-- [ ] Integrate physics engine with server
-  - [ ] Create a simulation loop using `setInterval` at 60 Hz
-  - [ ] Update pendulum state using `updatePendulum()` only when `lifecycle === 'running'`
-  - [ ] Store current state in memory for `/status` endpoint
+- [x] Integrate physics engine with server
+  - [x] Create a simulation loop using `setInterval` at 60 Hz
+  - [x] Update pendulum state using `updatePendulum()` only when `lifecycle === 'running'`
+  - [x] Store current state in memory for `/status` endpoint
 
 ### 2.5 Terminal Status Display
 
@@ -230,6 +230,7 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
   - [ ] Start Express server on discovered port
   - [ ] Start physics simulation loop (60 Hz)
   - [ ] Start terminal status logger
+- [ ] Add an example usage scenario to the README
 
 **Testable outcome:**
 - Running `npm start -- --angle=45 --length=200` starts a node server
@@ -237,7 +238,7 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 - `curl http://localhost:7700/status` returns JSON with pendulum state
 - `curl -X POST http://localhost:7700/start` starts the simulation
 - `curl http://localhost:7700/config` returns current configuration
-- `curl -X PUT http://localhost:7700/config -H 'Content-Type: application/json' -d '{"angle": 30, "mass": 2}'` updates config
+- `curl -X PUT http://localhost:7700/config -H 'Content-Type: application/json' -d '{"angle": 30, "mass": 35}'` updates config
 - Terminal shows periodic status updates
 - Pendulum angle changes over time when running (verify via `/status` endpoint)
 - Angle is normalized to `[-180, 180]` range

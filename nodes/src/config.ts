@@ -83,10 +83,51 @@ function parseNumber(flag: string, raw: unknown): number {
   return value;
 }
 
-function checkRange(flag: string, value: number, min: number, max: number, unit = ""): void {
+function checkRange(name: string, value: number, min: number, max: number, unit = ""): void {
   if (value < min || value > max) {
-    throw new ConfigError(`--${flag} must be between ${min} and ${max}${unit}, got ${value}`);
+    throw new ConfigError(`${name} must be between ${min} and ${max}${unit}, got ${value}`);
   }
+}
+
+function checkLimits(
+  { length, mass, angle }: Partial<CliOptions>,
+  prefix: string,
+): void {
+  if (length !== undefined) checkRange(`${prefix}length`, length, MIN_LENGTH, MAX_LENGTH);
+  if (mass !== undefined) checkRange(`${prefix}mass`, mass, MIN_MASS, MAX_MASS);
+  if (angle !== undefined) {
+    checkRange(`${prefix}angle`, angle, MIN_ANGLE_DEG, MAX_ANGLE_DEG, " degrees");
+  }
+}
+
+/**
+ * Validates a partial configuration update, such as a PUT /config body.
+ * Throws ConfigError for unknown fields, non-numbers or out-of-range values.
+ */
+export function parseConfigUpdate(body: unknown): Partial<CliOptions> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new ConfigError("Configuration must be a JSON object");
+  }
+
+  const unknown = Object.keys(body).filter(
+    (key) => !(NUMERIC_FLAGS as readonly string[]).includes(key),
+  );
+  if (unknown.length > 0) {
+    throw new ConfigError(`Unknown field(s): ${unknown.join(", ")}`);
+  }
+
+  const update: Partial<CliOptions> = {};
+  for (const field of NUMERIC_FLAGS) {
+    const value = (body as Record<string, unknown>)[field];
+    if (value === undefined) continue;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new ConfigError(`${field} must be a finite number`);
+    }
+    update[field] = value;
+  }
+
+  checkLimits(update, "");
+  return update;
 }
 
 /** Parses and validates CLI flags. Returns null when `--help` was requested. */
@@ -117,9 +158,7 @@ export function parseCliArgs(argv: string[]): CliOptions | null {
   const mass = read("mass") ?? DEFAULT_MASS;
   const angle = read("angle") ?? DEFAULT_ANGLE_DEG;
 
-  checkRange("length", length, MIN_LENGTH, MAX_LENGTH);
-  checkRange("mass", mass, MIN_MASS, MAX_MASS);
-  checkRange("angle", angle, MIN_ANGLE_DEG, MAX_ANGLE_DEG, " degrees");
+  checkLimits({ length, mass, angle }, "--");
 
   return { x, length, mass, angle };
 }
