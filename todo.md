@@ -73,8 +73,8 @@ Do not mention this document in commit messages or code (comments). Check off it
 
 ### 2.2 Command-Line Interface & Configuration
 
-- [ ] Create `src/config.ts`
-  - [ ] Define configuration interface:
+- [x] Create `src/config.ts`
+  - [x] Define configuration interface:
     ```ts
     interface Config {
       x?: number;        // hinge x-coordinate (optional, assigned from join order if omitted)
@@ -85,21 +85,21 @@ Do not mention this document in commit messages or code (comments). Check off it
       nodeId: string;    // derived from port: `node-7701`
     }
     ```
-  - [ ] Implement CLI argument parsing using `minimist`
-    - [ ] Support flags: `--x`, `--length`, `--mass`, `--angle`
-    - [ ] Validate all numeric flags as finite numbers
-    - [ ] Validate `length > 0`, `mass > 0`
-    - [ ] Validate `angle` is in range `[-180, 180]` degrees (or `[-π, π]` radians)
-    - [ ] Provide `--help` output
-  - [ ] Implement port auto-discovery:
-    - [ ] Start at port `7700`
-    - [ ] Attempt to bind; if fails (EADDRINUSE), increment and retry
-    - [ ] Continue until successful
-  - [ ] Generate `nodeId` from selected port: `node-${port}`
-  - [ ] Export a `loadConfig()` function that returns the parsed configuration
+  - [x] Implement CLI argument parsing using `minimist`
+    - [x] Support flags: `--x`, `--length`, `--mass`, `--angle`
+    - [x] Validate all numeric flags as finite numbers
+    - [x] Validate `length > 0`, `mass > 0`
+    - [x] Validate `angle` is in range `[-180, 180]` degrees (or `[-π, π]` radians)
+    - [x] Provide `--help` output
+  - [x] Implement port auto-discovery:
+    - [x] Start at port `7700`
+    - [x] Attempt to bind; if fails (EADDRINUSE), increment and retry
+    - [x] Continue until successful
+  - [x] Generate `nodeId` from selected port: `node-${port}`
+  - [x] Export a `loadConfig()` function that returns the parsed configuration
 
-- [ ] Create `src/constants.ts`
-  - [ ] Define named constants:
+- [x] Create `src/constants.ts`
+  - [x] Define named constants:
     ```ts
     export const DEFAULT_LENGTH = 150;
     export const DEFAULT_MASS = 1;
@@ -108,8 +108,8 @@ Do not mention this document in commit messages or code (comments). Check off it
     export const MAX_PORT_SEARCH = 100; // prevent infinite loop
     ```
 
-- [ ] Update `src/index.ts` to use the configuration
-  - [ ] Log the loaded configuration on startup
+- [x] Update `src/index.ts` to use the configuration
+  - [x] Log the loaded configuration on startup
 
 ### 2.3 Physics Engine
 
