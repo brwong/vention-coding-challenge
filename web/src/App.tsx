@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NodeConfigForm } from './components/NodeConfigForm'
 import { NodeList } from './components/NodeList'
 import { NodeSelector } from './components/NodeSelector'
@@ -49,6 +49,9 @@ function App() {
   const [draft, setDraft] = useState<{ nodeId: string; fields: ConfigDraft }>()
   const [actionMessage, setActionMessage] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
+  // A node whose config form should take focus once it has rendered.
+  const pendingFocus = useRef<string>(undefined)
   // Bumping these restarts the scan or the polling right away.
   const [scanKey, setScanKey] = useState(0)
   const [pollKey, setPollKey] = useState(0)
@@ -95,6 +98,35 @@ function App() {
     // Poll now rather than wait out the idle interval, so the change shows at once.
     setPollKey((key) => key + 1)
   }
+
+  async function runNodeCommand(node: NodeInfo, command: LifecycleCommand) {
+    setBusyNodeIds((previous) => new Set(previous).add(node.nodeId))
+    try {
+      await sendCommand(node.port, command)
+      setActionMessage(`${COMMAND_VERBS[command]} ${node.nodeId}`)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      setActionMessage(`Failed to ${command} ${node.nodeId}: ${reason}`)
+    }
+    setBusyNodeIds((previous) => {
+      const next = new Set(previous)
+      next.delete(node.nodeId)
+      return next
+    })
+    setPollKey((key) => key + 1)
+  }
+
+  function configure(nodeId: string) {
+    setSelectedNodeId(nodeId)
+    pendingFocus.current = nodeId
+  }
+
+  useEffect(() => {
+    const nodeId = pendingFocus.current
+    if (nodeId === undefined) return
+    pendingFocus.current = undefined
+    document.getElementById(`${nodeId}-x`)?.focus()
+  })
 
   // Default to the first node, and drop a selection whose node is gone.
   const selectedNode = nodes.find((node) => node.nodeId === selectedNodeId) ?? nodes[0]
@@ -164,6 +196,9 @@ function App() {
               statuses={statuses}
               lastUpdated={lastUpdated}
               selectedNodeId={selected}
+              busyNodeIds={busyNodeIds}
+              onCommand={runNodeCommand}
+              onConfigure={configure}
             />
             {selectedStatus ? (
               <NodeConfigForm

@@ -586,10 +586,10 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 5.3 Individual Node Controls
 
-- [ ] Extend `src/components/NodeList.tsx`
-  - [ ] Add per-node Start/Pause/Stop buttons
-  - [ ] Add "Configure" button that shows `NodeConfigForm` in a modal or side panel
-  - [ ] Show configuration panel when node is selected
+- [x] Extend `src/components/NodeList.tsx`
+  - [x] Add per-node Start/Pause/Stop buttons
+  - [x] Add "Configure" button that shows `NodeConfigForm` in a modal or side panel
+  - [x] Show configuration panel when node is selected
 
 ### 5.4 Lifecycle State Display
 

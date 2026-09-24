@@ -232,3 +232,22 @@ button.selected {
 .pendulum-canvas.dragging .handle {
   cursor: grabbing;
 }
+
+.node-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.node-actions button {
+  padding: 2px 6px;
+  font-size: 0.8rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
