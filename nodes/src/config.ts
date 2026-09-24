@@ -7,8 +7,12 @@ import {
   DEFAULT_MASS,
   HOST,
   MAX_ANGLE_DEG,
+  MAX_LENGTH,
+  MAX_MASS,
   MAX_PORT_SEARCH,
   MIN_ANGLE_DEG,
+  MIN_LENGTH,
+  MIN_MASS,
 } from "./constants";
 
 export interface Config {
@@ -37,8 +41,8 @@ Starts a pendulum node on the first free port from ${BASE_PORT}.
 
 Options:
   --x <number>       Hinge x-coordinate (default: assigned from join order)
-  --length <number>  Pendulum length, > 0 (default: ${DEFAULT_LENGTH})
-  --mass <number>    Bob mass, > 0 (default: ${DEFAULT_MASS})
+  --length <number>  Pendulum length, ${MIN_LENGTH} to ${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
+  --mass <number>    Bob mass, ${MIN_MASS} to ${MAX_MASS} (default: ${DEFAULT_MASS})
   --angle <number>   Initial angle in degrees, ${MIN_ANGLE_DEG} to ${MAX_ANGLE_DEG} (default: ${DEFAULT_ANGLE_DEG})
   -h, --help         Show this help`;
 
@@ -79,6 +83,12 @@ function parseNumber(flag: string, raw: unknown): number {
   return value;
 }
 
+function checkRange(flag: string, value: number, min: number, max: number, unit = ""): void {
+  if (value < min || value > max) {
+    throw new ConfigError(`--${flag} must be between ${min} and ${max}${unit}, got ${value}`);
+  }
+}
+
 /** Parses and validates CLI flags. Returns null when `--help` was requested. */
 export function parseCliArgs(argv: string[]): CliOptions | null {
   const args = minimist(joinNegativeValues(argv), {
@@ -107,13 +117,9 @@ export function parseCliArgs(argv: string[]): CliOptions | null {
   const mass = read("mass") ?? DEFAULT_MASS;
   const angle = read("angle") ?? DEFAULT_ANGLE_DEG;
 
-  if (length <= 0) throw new ConfigError(`--length must be greater than 0, got ${length}`);
-  if (mass <= 0) throw new ConfigError(`--mass must be greater than 0, got ${mass}`);
-  if (angle < MIN_ANGLE_DEG || angle > MAX_ANGLE_DEG) {
-    throw new ConfigError(
-      `--angle must be between ${MIN_ANGLE_DEG} and ${MAX_ANGLE_DEG} degrees, got ${angle}`,
-    );
-  }
+  checkRange("length", length, MIN_LENGTH, MAX_LENGTH);
+  checkRange("mass", mass, MIN_MASS, MAX_MASS);
+  checkRange("angle", angle, MIN_ANGLE_DEG, MAX_ANGLE_DEG, " degrees");
 
   return { x, length, mass, angle };
 }

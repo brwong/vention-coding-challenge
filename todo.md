@@ -113,8 +113,8 @@ Do not mention this document in commit messages or code (comments). Check off it
 
 ### 2.3 Physics Engine
 
-- [ ] Create `src/constants.ts` (or extend from above)
-  - [ ] Add physics constants:
+- [x] Create `src/constants.ts` (or extend from above)
+  - [x] Add physics constants:
     ```ts
     export const PHYSICS_HZ = 60;
     export const DT = 1 / 60;
@@ -128,10 +128,10 @@ Do not mention this document in commit messages or code (comments). Check off it
     export const MAX_ANGLE_RAD = Math.PI;
     ```
 
-- [ ] Create `src/physics.ts`
-  - [ ] Implement `normalizeAngle(angle: number): number`
-    - [ ] Normalize to `[-π, π]` range using the formula from physics.md
-  - [ ] Define `PendulumState` interface:
+- [x] Create `src/physics.ts`
+  - [x] Implement `normalizeAngle(angle: number): number`
+    - [x] Normalize to `[-π, π]` range using the formula from physics.md
+  - [x] Define `PendulumState` interface:
     ```ts
     interface PendulumState {
       angle: number;        // radians, normalized to [-π, π]
@@ -139,25 +139,25 @@ Do not mention this document in commit messages or code (comments). Check off it
       angularAcceleration: number; // rad/s²
     }
     ```
-  - [ ] Implement `createPendulum(initialAngleDeg: number): PendulumState`
-    - [ ] Convert degrees to radians
-    - [ ] Initialize with `angularVelocity = 0`, `angularAcceleration = 0`
-  - [ ] Implement `updatePendulum(state: PendulumState, length: number): PendulumState`
-    - [ ] Use semi-implicit Euler with fixed `dt = 1/60`
-    - [ ] Calculate: `angularAcceleration = -(GRAVITY / length) * sin(angle)`
-    - [ ] Update: `angularVelocity += angularAcceleration * dt`
-    - [ ] Update: `angle += angularVelocity * dt`
-    - [ ] Normalize angle after update
-  - [ ] Implement `calculateBobRadius(mass: number): number`
-    - [ ] Use unit density (mass = volume): `r = cbrt(3 * mass / (4 * π))`
-  - [ ] Implement `getPosition(state: PendulumState, anchorX: number, anchorY: number, length: number): { x: number, y: number }`
-    - [ ] Calculate: `x = anchorX + length * sin(angle)`, `y = anchorY + length * cos(angle)`
-    - [ ] Note: Assumes positive Y points downward (screen coordinates)
-  - [ ] Implement `checkCollision(state1: PendulumState, state2: PendulumState, anchor1: {x,y}, anchor2: {x,y}, length1: number, length2: number, mass1: number, mass2: number): boolean`
-    - [ ] Calculate bob positions
-    - [ ] Calculate bob radii from mass
-    - [ ] Check: `distance(p1, p2) <= r1 + r2 + COLLISION_MARGIN`
-  - [ ] Export all functions for use in the main server
+  - [x] Implement `createPendulum(initialAngleDeg: number): PendulumState`
+    - [x] Convert degrees to radians
+    - [x] Initialize with `angularVelocity = 0`, `angularAcceleration = 0`
+  - [x] Implement `updatePendulum(state: PendulumState, length: number): PendulumState`
+    - [x] Use semi-implicit Euler with fixed `dt = 1/60`
+    - [x] Calculate: `angularAcceleration = -(GRAVITY / length) * sin(angle)`
+    - [x] Update: `angularVelocity += angularAcceleration * dt`
+    - [x] Update: `angle += angularVelocity * dt`
+    - [x] Normalize angle after update
+  - [x] Implement `calculateBobRadius(mass: number): number`
+    - [x] Use unit density (mass = volume): `r = cbrt(3 * mass / (4 * π))`
+  - [x] Implement `getPosition(state: PendulumState, anchorX: number, anchorY: number, length: number): { x: number, y: number }`
+    - [x] Calculate: `x = anchorX + length * sin(angle)`, `y = anchorY + length * cos(angle)`
+    - [x] Note: Assumes positive Y points downward (screen coordinates)
+  - [x] Implement `checkCollision(state1: PendulumState, state2: PendulumState, anchor1: {x,y}, anchor2: {x,y}, length1: number, length2: number, mass1: number, mass2: number): boolean`
+    - [x] Calculate bob positions
+    - [x] Calculate bob radii from mass
+    - [x] Check: `distance(p1, p2) <= r1 + r2 + COLLISION_MARGIN`
+  - [x] Export all functions for use in the main server
 
 ### 2.4 REST API Server
 
