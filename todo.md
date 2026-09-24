@@ -753,47 +753,47 @@ These tests verify the core physics calculations. They're pure functions with no
 
 Use `supertest` to make HTTP requests against the Express app.
 
-- [ ] Test `GET /status`
-  - [ ] Returns 200 with correct JSON shape
-  - [ ] Contains nodeId, port, state, config, lifecycle fields
-  - [ ] State contains angle (number), angularVelocity (number), running (boolean)
+- [x] Test `GET /status`
+  - [x] Returns 200 with correct JSON shape
+  - [x] Contains nodeId, port, state, config, lifecycle fields
+  - [x] State contains angle (number), angularVelocity (number), running (boolean)
 
-- [ ] Test `GET /config`
-  - [ ] Returns 200 with current config
-  - [ ] Contains x, length, mass, angle fields
-  - [ ] Values match what was set on startup or last PUT
+- [x] Test `GET /config`
+  - [x] Returns 200 with current config
+  - [x] Contains x, length, mass, angle fields
+  - [x] Values match what was set on startup or last PUT
 
-- [ ] Test `PUT /config`
-  - [ ] Valid update: `{ length: 200 }` → returns 200, config updated
-  - [ ] Valid update: `{ mass: 2, angle: 30 }` → both fields updated
-  - [ ] Invalid update: `{ length: -10 }` → returns 400, config unchanged
-  - [ ] Invalid update: `{ mass: 0 }` → returns 400, config unchanged
-  - [ ] Invalid update: `{ angle: 200 }` → returns 400, config unchanged
-  - [ ] Invalid update: `{ angle: "abc" }` → returns 400, config unchanged
+- [x] Test `PUT /config`
+  - [x] Valid update: `{ length: 200 }` → returns 200, config updated
+  - [x] Valid update: `{ mass: 2000, angle: 30 }` → both fields updated
+  - [x] Invalid update: `{ length: -10 }` → returns 400, config unchanged
+  - [x] Invalid update: `{ mass: 0 }` → returns 400, config unchanged
+  - [x] Invalid update: `{ angle: 200 }` → returns 400, config unchanged
+  - [x] Invalid update: `{ angle: "abc" }` → returns 400, config unchanged
 
-- [ ] Test `POST /start`
-  - [ ] Returns 200, lifecycle changes to 'running'
-  - [ ] Subsequent `/status` shows running=true
+- [x] Test `POST /start`
+  - [x] Returns 200, lifecycle changes to 'running'
+  - [x] Subsequent `/status` shows running=true
 
-- [ ] Test `POST /pause`
-  - [ ] Returns 200, lifecycle changes to 'paused'
-  - [ ] Subsequent `/status` shows running=false, angle preserved
+- [x] Test `POST /pause`
+  - [x] Returns 200, lifecycle changes to 'paused'
+  - [x] Subsequent `/status` shows running=false, angle preserved
 
-- [ ] Test `POST /stop`
-  - [ ] Returns 200, lifecycle changes to 'stopped'
+- [x] Test `POST /stop`
+  - [x] Returns 200, lifecycle changes to 'stopped'
 
-- [ ] Test `POST /message`
-  - [ ] JOIN message → returns JOIN_RESPONSE with peer list
-  - [ ] HEARTBEAT message → returns 200, updates lastHeartbeat
-  - [ ] STOP message with valid term → returns 200, node stops
-  - [ ] RESTART message → returns 200, adds to restart barrier
-  - [ ] POSITION message → returns 200, updates position cache
-  - [ ] Invalid message type → returns 400
+- [x] Test `POST /message`
+  - [x] JOIN message → returns JOIN_RESPONSE with peer list
+  - [x] HEARTBEAT message → returns 200, updates lastHeartbeat
+  - [x] STOP message with valid term → returns 200, node stops
+  - [x] RESTART message → returns 200, adds to restart barrier
+  - [x] POSITION message → returns 200, updates position cache
+  - [x] Invalid message type → returns 400
 
-- [ ] Test simulation behavior
-  - [ ] POST /start, wait 500ms, GET /status → angle has changed
-  - [ ] POST /pause, wait 500ms, GET /status → angle unchanged from pause
-  - [ ] PUT /config with new angle, GET /status → angle reset to new initial value
+- [x] Test simulation behavior
+  - [x] POST /start, wait 500ms, GET /status → angle has changed
+  - [x] POST /pause, wait 500ms, GET /status → angle unchanged from pause
+  - [x] PUT /config with new angle, GET /status → angle reset to new initial value
 
 **Expected runtime:** ~2-3 seconds for all API tests
 
