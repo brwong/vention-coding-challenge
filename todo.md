@@ -62,14 +62,14 @@ Do not mention this document in commit messages or code (comments). Check off it
 
 ### 2.1 Project Configuration
 
-- [ ] Update `/nodes/package.json` with production dependencies
-  - [ ] `express` - REST API server
-  - [ ] `@types/express` - TypeScript types for Express
-  - [ ] `cors` - Enable CORS for web UI communication
-  - [ ] `@types/cors` - TypeScript types for CORS
-  - [ ] `minimist` - CLI argument parsing (already installed in Section 1)
+- [x] Update `/nodes/package.json` with production dependencies
+  - [x] `express` - REST API server
+  - [x] `@types/express` - TypeScript types for Express
+  - [x] `cors` - Enable CORS for web UI communication
+  - [x] `@types/cors` - TypeScript types for CORS
+  - [x] `minimist` - CLI argument parsing (already installed in Section 1)
 
-- [ ] Update `/nodes/tsconfig.json` if needed for Express types
+- [x] Update `/nodes/tsconfig.json` if needed for Express types
 
 ### 2.2 Command-Line Interface & Configuration
 
