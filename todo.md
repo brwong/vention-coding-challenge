@@ -570,19 +570,19 @@ If applicable, read the documentation in the `docs` folder - don't guess or inve
 
 ### 5.2 Direct Manipulation (Dragging)
 
-- [ ] Extend `src/components/PendulumCanvas.tsx`
-  - [ ] Track selected node (from parent state)
-  - [ ] Implement drag handlers for SVG elements:
-    - [ ] Drag hinge horizontally → update local draft `x` value
-    - [ ] Drag bob → update local draft `length` and `angle` values
-  - [ ] Show visual feedback during drag (e.g., highlight selected pendulum)
-  - [ ] Maintain local draft state separate from authoritative node state
-  - [ ] Only send `PUT /config` when user clicks "Apply" (not on every drag movement)
+- [x] Extend `src/components/PendulumCanvas.tsx`
+  - [x] Track selected node (from parent state)
+  - [x] Implement drag handlers for SVG elements:
+    - [x] Drag hinge horizontally → update local draft `x` value
+    - [x] Drag bob → update local draft `length` and `angle` values
+  - [x] Show visual feedback during drag (e.g., highlight selected pendulum)
+  - [x] Maintain local draft state separate from authoritative node state
+  - [x] Only send `PUT /config` when user clicks "Apply" (not on every drag movement)
 
-- [ ] Add numeric inputs alongside canvas
-  - [ ] Show current values for selected node
-  - [ ] Allow precise input via number fields or sliders
-  - [ ] Sync with draft state from dragging
+- [x] Add numeric inputs alongside canvas
+  - [x] Show current values for selected node
+  - [x] Allow precise input via number fields or sliders
+  - [x] Sync with draft state from dragging
 
 ### 5.3 Individual Node Controls
 

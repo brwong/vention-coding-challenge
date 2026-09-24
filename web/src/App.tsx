@@ -3,6 +3,7 @@ import { NodeConfigForm } from './components/NodeConfigForm'
 import { NodeList } from './components/NodeList'
 import { NodeSelector } from './components/NodeSelector'
 import { PendulumCanvas } from './components/PendulumCanvas'
+import { type ConfigDraft, pruneDraft, resolveDraft } from './configDraft'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
 import {
   type LifecycleCommand,
@@ -43,6 +44,9 @@ function App() {
   const [statuses, setStatuses] = useState(new Map<string, PendulumStatus>())
   const [lastUpdated, setLastUpdated] = useState(new Map<string, number>())
   const [selectedNodeId, setSelectedNodeId] = useState<string>()
+  // Unapplied edits, shared by the form and the canvas. They belong to one node
+  // and are ignored once another node is selected.
+  const [draft, setDraft] = useState<{ nodeId: string; fields: ConfigDraft }>()
   const [actionMessage, setActionMessage] = useState<string>()
   const [busy, setBusy] = useState(false)
   // Bumping these restarts the scan or the polling right away.
@@ -96,6 +100,20 @@ function App() {
   const selectedNode = nodes.find((node) => node.nodeId === selectedNodeId) ?? nodes[0]
   const selected = selectedNode?.nodeId
   const selectedStatus = selected === undefined ? undefined : statuses.get(selected)
+  const draftFields = draft && draft.nodeId === selected ? draft.fields : {}
+
+  function updateDraft(fields: ConfigDraft) {
+    if (!selectedStatus) return
+    setDraft({ nodeId: selectedStatus.nodeId, fields: pruneDraft(selectedStatus.config, fields) })
+  }
+
+  function dragDraft(changes: Partial<PendulumConfig>) {
+    const fields = { ...draftFields }
+    for (const [field, value] of Object.entries(changes)) {
+      fields[field as keyof ConfigDraft] = String(value)
+    }
+    updateDraft(fields)
+  }
 
   async function applySelectedConfig(config: PendulumConfig) {
     await applyConfig(selectedNode.port, config)
@@ -131,7 +149,14 @@ function App() {
         <p className="empty">{scanned ? 'No nodes found' : 'Scanning for nodes…'}</p>
       ) : (
         <main>
-          <PendulumCanvas nodes={nodes} statuses={statuses} selectedNodeId={selected} />
+          <PendulumCanvas
+            nodes={nodes}
+            statuses={statuses}
+            selectedNodeId={selected}
+            draftConfig={selectedStatus && resolveDraft(selectedStatus.config, draftFields)}
+            onDraftChange={dragDraft}
+            onSelect={setSelectedNodeId}
+          />
           <aside>
             <NodeSelector nodes={nodes} selectedNodeId={selected} onSelect={setSelectedNodeId} />
             <NodeList
@@ -145,6 +170,8 @@ function App() {
                 key={selected}
                 nodeId={selectedStatus.nodeId}
                 currentConfig={selectedStatus.config}
+                draft={draftFields}
+                onDraftChange={updateDraft}
                 onApply={applySelectedConfig}
               />
             ) : (
