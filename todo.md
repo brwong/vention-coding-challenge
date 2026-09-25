@@ -975,13 +975,13 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
   - [x] Display configuration-update failures and partial group-action failures
   - [x] Display reported collision/restart state from nodes
 
-- [ ] Apply minimal responsive and accessible styling
-  - [ ] Keep the SVG visualization usable at typical laptop widths
-  - [ ] Add a horizontal line where the pendulum hinges are attached (visual only, doesn't affect physics or collisions)
-  - [ ] Ensure controls remain usable on narrower viewports
-  - [ ] Add labels to inputs and accessible names to buttons
-  - [ ] Ensure keyboard users can select a node, edit values, apply configuration, and invoke controls
-  - [ ] Do not rely solely on color to convey node lifecycle state
+- [x] Apply minimal responsive and accessible styling
+  - [x] Keep the SVG visualization usable at typical laptop widths
+  - [x] Add a horizontal line where the pendulum hinges are attached (visual only, doesn't affect physics or collisions)
+  - [x] Ensure controls remain usable on narrower viewports
+  - [x] Add labels to inputs and accessible names to buttons
+  - [x] Ensure keyboard users can select a node, edit values, apply configuration, and invoke controls
+  - [x] Do not rely solely on color to convey node lifecycle state
 
 **Testable outcome:**
 - The UI distinguishes discovery, reachability, lifecycle, configuration, and group-action errors

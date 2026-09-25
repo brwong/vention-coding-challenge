@@ -3,6 +3,7 @@ import {
   CONFIG_LIMITS,
   HINGE_Y,
   LIFECYCLE_COLORS,
+  LIFECYCLE_DASH,
   type Point,
   UNREACHABLE_COLOR,
   bobPosition,
@@ -129,6 +130,8 @@ export function PendulumCanvas({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
+      {/* Visual only: the rail the hinges are mounted to. */}
+      <line x1={-100000} x2={100000} y1={HINGE_Y} y2={HINGE_Y} className="hinge-rail" />
       {nodes.map((node) => {
         const status = statuses.get(node.nodeId)
         const x = hingeX(node, status)
@@ -186,6 +189,7 @@ export function PendulumCanvas({
               fill={nodeColor(node.port)}
               stroke={LIFECYCLE_COLORS[status.lifecycle] ?? UNREACHABLE_COLOR}
               strokeWidth={selected ? 3 : 2}
+              strokeDasharray={LIFECYCLE_DASH[status.lifecycle]}
             />
             <text x={x} y={HINGE_Y - 8} textAnchor="middle" className="label">
               {node.nodeId}

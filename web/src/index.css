@@ -86,6 +86,12 @@ main {
   fill: var(--fg);
 }
 
+.pendulum-canvas .hinge-rail {
+  stroke: var(--border);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
 .pendulum-canvas .rod {
   stroke: var(--fg);
   stroke-width: 1.5;

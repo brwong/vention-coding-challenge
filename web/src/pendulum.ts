@@ -31,6 +31,15 @@ export const LIFECYCLE_COLORS: Record<Lifecycle, string> = {
 
 export const UNREACHABLE_COLOR = '#94a3b8'
 
+// A stroke pattern per lifecycle, so the state doesn't depend on color alone.
+export const LIFECYCLE_DASH: Record<Lifecycle, string | undefined> = {
+  ready: undefined,
+  running: undefined,
+  paused: '4 3',
+  stopped: '1 3',
+  restarting: '6 2 1 2',
+}
+
 const NODE_COLORS = ['#2563eb', '#9333ea', '#0891b2', '#db2777', '#4f46e5', '#0d9488']
 
 /** A stable color per node, so a pendulum keeps its color across rescans. */
