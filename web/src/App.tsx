@@ -54,6 +54,8 @@ function App() {
   // Unapplied edits, shared by the form and the canvas. They belong to one node
   // and are ignored once another node is selected.
   const [draft, setDraft] = useState<{ nodeId: string; fields: ConfigDraft }>()
+  // Hidden while any node is playing; only an explicit Configure click brings it back.
+  const [configVisible, setConfigVisible] = useState(true)
   const [actionMessage, setActionMessage] = useState<{ text: string; error: boolean }>()
   const [busy, setBusy] = useState(false)
   const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
@@ -91,13 +93,9 @@ function App() {
   useEffect(() => pollProtocolStates(nodes, setProtocols), [nodes])
 
   const activeNodes = nodes.filter((node) => node.status === 'active')
-  // Nodes that missed the latest election may name an old leader; trust the newest term.
-  const newest = [...protocols.values()].reduce<ProtocolStatus | undefined>(
-    (best, protocol) => (best && best.term >= protocol.term ? best : protocol),
-    undefined,
-  )
 
   async function runGroupCommand(command: LifecycleCommand) {
+    if (command === 'start') setConfigVisible(false)
     setBusy(true)
     const results = await Promise.allSettled(
       activeNodes.map((node) => sendCommand(node.port, command)),
@@ -124,6 +122,7 @@ function App() {
   }
 
   async function runNodeCommand(node: NodeInfo, command: LifecycleCommand) {
+    if (command === 'start') setConfigVisible(false)
     setBusyNodeIds((previous) => new Set(previous).add(node.nodeId))
     try {
       await sendCommand(node.port, command)
@@ -142,6 +141,7 @@ function App() {
 
   function configure(nodeId: string) {
     setSelectedNodeId(nodeId)
+    setConfigVisible(true)
     pendingFocus.current = nodeId
   }
 
@@ -195,11 +195,6 @@ function App() {
             {scanning ? 'Scanning…' : 'Refresh Nodes'}
           </button>
         </div>
-        {newest && (
-          <p className="leader">
-            {newest.leader ? `Leader: ${newest.leader}` : 'No leader elected'} (term {newest.term})
-          </p>
-        )}
         {actionMessage && (
           <p
             className={actionMessage.error ? 'action-message error' : 'action-message'}
@@ -227,7 +222,9 @@ function App() {
             statuses={statuses}
             unreachable={unreachable}
             selectedNodeId={selected}
-            draftConfig={selectedStatus && resolveDraft(selectedStatus.config, draftFields)}
+            draftConfig={
+              configVisible && selectedStatus ? resolveDraft(selectedStatus.config, draftFields) : undefined
+            }
             onDraftChange={dragDraft}
             onSelect={setSelectedNodeId}
           />
@@ -244,22 +241,23 @@ function App() {
               onCommand={runNodeCommand}
               onConfigure={configure}
             />
-            {selectedStatus ? (
-              <NodeConfigForm
-                key={selected}
-                nodeId={selectedStatus.nodeId}
-                currentConfig={selectedStatus.config}
-                draft={draftFields}
-                onDraftChange={updateDraft}
-                onApply={applySelectedConfig}
-              />
-            ) : (
-              selected && (
-                <p className="form-error">
-                  {selected} is unreachable; its configuration cannot be edited.
-                </p>
-              )
-            )}
+            {configVisible &&
+              (selectedStatus ? (
+                <NodeConfigForm
+                  key={selected}
+                  nodeId={selectedStatus.nodeId}
+                  currentConfig={selectedStatus.config}
+                  draft={draftFields}
+                  onDraftChange={updateDraft}
+                  onApply={applySelectedConfig}
+                />
+              ) : (
+                selected && (
+                  <p className="form-error">
+                    {selected} is unreachable; its configuration cannot be edited.
+                  </p>
+                )
+              ))}
           </aside>
         </main>
       )}

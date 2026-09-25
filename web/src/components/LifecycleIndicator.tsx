@@ -17,14 +17,23 @@ function coordinationDetail(status: PendulumStatus, protocol?: ProtocolStatus): 
   return undefined
 }
 
+// Always renders a detail line, even blank, so a row's height doesn't change
+// depending on whether one is present (e.g. during a restart countdown).
 export function LifecycleIndicator({ status, protocol, unreachable }: Props) {
   if (!status) {
-    return unreachable ? (
-      <span className="lifecycle error">Node unreachable</span>
-    ) : (
-      <span className="lifecycle muted">
-        <span className="spinner" aria-hidden="true" />
-        Connecting…
+    return (
+      <span className="lifecycle">
+        <span className="lifecycle-main">
+          {unreachable ? (
+            <span className="error">Node unreachable</span>
+          ) : (
+            <span className="muted">
+              <span className="spinner" aria-hidden="true" />
+              Connecting…
+            </span>
+          )}
+        </span>
+        <span className="lifecycle-detail">&nbsp;</span>
       </span>
     )
   }
@@ -33,10 +42,12 @@ export function LifecycleIndicator({ status, protocol, unreachable }: Props) {
   const detail = coordinationDetail(status, protocol)
   return (
     <span className="lifecycle">
-      <span className="lifecycle-dot" style={{ background: color }} aria-hidden="true" />
-      <span style={{ color }}>{status.lifecycle}</span>
-      {protocol?.isLeader && <span className="badge">leader</span>}
-      {detail && <span className="lifecycle-detail">{detail}</span>}
+      <span className="lifecycle-main">
+        <span className="lifecycle-dot" style={{ background: color }} aria-hidden="true" />
+        <span style={{ color }}>{status.lifecycle}</span>
+        {protocol?.isLeader && <span className="badge">leader</span>}
+      </span>
+      <span className="lifecycle-detail">{detail ?? <>&nbsp;</>}</span>
     </span>
   )
 }

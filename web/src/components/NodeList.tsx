@@ -55,6 +55,8 @@ export function NodeList({
           {nodes.map((node) => {
             const status = statuses.get(node.nodeId)
             const disabled = !status || busyNodeIds.has(node.nodeId)
+            // Configuring mid-play would edit a pendulum that's already moving.
+            const configurable = status?.lifecycle === 'ready' || status?.lifecycle === 'stopped'
             return (
               <tr
                 key={node.nodeId}
@@ -89,7 +91,7 @@ export function NodeList({
                     ))}
                     <button
                       type="button"
-                      disabled={!status}
+                      disabled={!configurable}
                       aria-label={`Configure ${node.nodeId}`}
                       onClick={() => onConfigure(node.nodeId)}
                     >

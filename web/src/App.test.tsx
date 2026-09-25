@@ -39,12 +39,13 @@ describe('App', () => {
     expect(container.querySelectorAll('svg [aria-label^="Select node-"]')).toHaveLength(3)
   })
 
-  it('shows each node lifecycle and the leader once polled', async () => {
+  it('shows each node lifecycle and flags the leader in its row', async () => {
     threeNodes()
     render(<App />)
     const table = await screen.findByRole('table')
     expect(await within(table).findAllByText('ready')).toHaveLength(3)
-    expect(await screen.findByText('Leader: node-7702 (term 1)')).toBeInTheDocument()
+    const leaderRow = (await within(table).findByText('node-7702')).closest('tr')
+    expect(leaderRow && within(leaderRow).getByText('leader')).toBeInTheDocument()
   })
 
   it('sends Start All to every node and reports success', async () => {

@@ -20,6 +20,12 @@
   }
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   color: var(--fg);
@@ -27,10 +33,15 @@ body {
 }
 
 .app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
   padding: 16px;
+  box-sizing: border-box;
 }
 
 header {
+  flex: 0 0 auto;
   margin-bottom: 16px;
 }
 
@@ -52,9 +63,10 @@ h1 {
 
 main {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 16px;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .empty,
@@ -63,8 +75,9 @@ main {
 }
 
 .pendulum-canvas {
-  flex: 1 1 480px;
-  max-height: 70vh;
+  flex: 1 1 62%;
+  min-width: 0;
+  height: 100%;
   background: var(--surface);
   border-radius: 8px;
 }
@@ -257,27 +270,29 @@ button.selected {
   white-space: nowrap;
 }
 
-.leader {
-  margin: 8px 0 0;
-  font-size: 0.9rem;
+.lifecycle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
-.lifecycle {
-  display: inline-flex;
-  flex-wrap: wrap;
+.lifecycle-main {
+  display: flex;
   align-items: center;
-  gap: 2px 6px;
+  gap: 6px;
 }
 
 .lifecycle-dot {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
 }
 
 .lifecycle-detail {
-  flex-basis: 100%;
   font-size: 0.8rem;
+  line-height: 1.3;
   color: var(--muted);
 }
 
@@ -329,9 +344,19 @@ input:focus-visible,
 }
 
 aside {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 1 1 38%;
+  min-width: 260px;
   max-width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Without this, a flex column with a fixed-height parent shrinks its children
+   below their content size instead of scrolling the container as a whole. */
+aside > * {
+  flex: none;
 }
 
 .table-scroll {
@@ -349,9 +374,15 @@ aside {
   }
 
   .pendulum-canvas {
-    flex: none;
+    flex: 0 0 45%;
     width: 100%;
-    max-height: 50vh;
+    height: auto;
+  }
+
+  aside {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
   }
 
   .config-form {
