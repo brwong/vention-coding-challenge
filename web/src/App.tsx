@@ -44,12 +44,11 @@ function sameNodes(a: NodeInfo[], b: NodeInfo[]): boolean {
 
 function App() {
   const [nodes, setNodes] = useState<NodeInfo[]>([])
-  // True until a scan finishes, whether the first one or one asked for by Refresh.
+  // True until the first scan finishes.
   const [scanning, setScanning] = useState(true)
   const [statuses, setStatuses] = useState(new Map<string, PendulumStatus>())
   const [unreachable, setUnreachable] = useState(new Set<string>())
   const [protocols, setProtocols] = useState(new Map<string, ProtocolStatus>())
-  const [lastUpdated, setLastUpdated] = useState(new Map<string, number>())
   const [selectedNodeId, setSelectedNodeId] = useState<string>()
   // Unapplied edits, shared by the form and the canvas. They belong to one node
   // and are ignored once another node is selected.
@@ -61,8 +60,7 @@ function App() {
   const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
   // A node whose config form should take focus once it has rendered.
   const pendingFocus = useRef<string>(undefined)
-  // Bumping these restarts the scan or the polling right away.
-  const [scanKey, setScanKey] = useState(0)
+  // Bumping this restarts the polling right away.
   const [pollKey, setPollKey] = useState(0)
 
   useEffect(
@@ -72,7 +70,7 @@ function App() {
         // Keep the old array when nothing changed so polling isn't restarted.
         setNodes((previous) => (sameNodes(previous, found) ? previous : found))
       }),
-    [scanKey],
+    [],
   )
 
   useEffect(
@@ -80,12 +78,6 @@ function App() {
       pollNodeStates(nodes, RUNNING_POLL_INTERVAL_MS, (polled, failed) => {
         setStatuses(polled)
         setUnreachable(failed)
-        setLastUpdated((previous) => {
-          const next = new Map(previous)
-          const now = Date.now()
-          for (const nodeId of polled.keys()) next.set(nodeId, now)
-          return next
-        })
       }),
     [nodes, pollKey],
   )
@@ -114,11 +106,6 @@ function App() {
     setBusy(false)
     // Poll now rather than wait out the idle interval, so the change shows at once.
     setPollKey((key) => key + 1)
-  }
-
-  function refresh() {
-    setScanning(true)
-    setScanKey((key) => key + 1)
   }
 
   async function runNodeCommand(node: NodeInfo, command: LifecycleCommand) {
@@ -191,9 +178,6 @@ function App() {
               {label}
             </button>
           ))}
-          <button type="button" disabled={scanning} onClick={refresh}>
-            {scanning ? 'Scanning…' : 'Refresh Nodes'}
-          </button>
         </div>
         {actionMessage && (
           <p
@@ -235,7 +219,6 @@ function App() {
               statuses={statuses}
               protocols={protocols}
               unreachable={unreachable}
-              lastUpdated={lastUpdated}
               selectedNodeId={selected}
               busyNodeIds={busyNodeIds}
               onCommand={runNodeCommand}

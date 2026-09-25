@@ -22,6 +22,7 @@ interface ProtocolStatus {
   term: number;
   leader: string | null;
   lifecycle: string;
+  stoppedBy: string | null;
   peers: { nodeId: string; suspected: boolean }[];
 }
 
@@ -179,16 +180,23 @@ describe("multi-node coordination", { timeout: 30_000 }, () => {
 
     await Promise.all(cluster.map((node) => post(node, "/start")));
 
-    // Record when each node is first seen in each lifecycle.
+    // Record when each node is first seen in each lifecycle, and who each
+    // node blames for the stop the first time it sees "stopped".
     const seen = new Map<string, Map<string, number>>(cluster.map((n) => [n.nodeId, new Map()]));
     const firstSeen = (node: Node, state: string) => seen.get(node.nodeId)!.get(state);
+    const stoppedBy = new Map<string, string | null>();
     const start = Date.now();
     while (Date.now() - start < 12_000) {
-      const states = await Promise.all(cluster.map(lifecycle));
-      states.forEach((state, i) => {
-        const times = seen.get(cluster[i].nodeId)!;
+      const statuses = await Promise.all(cluster.map(protocolStatus));
+      statuses.forEach((status, i) => {
+        const node = cluster[i];
+        const times = seen.get(node.nodeId)!;
+        const state = status.lifecycle;
         if (!times.has(state) && (state !== "running" || times.has("restarting"))) {
           times.set(state, Date.now());
+        }
+        if (state === "stopped" && !stoppedBy.has(node.nodeId)) {
+          stoppedBy.set(node.nodeId, status.stoppedBy);
         }
       });
       if (cluster.every((node) => firstSeen(node, "running") !== undefined)) break;
@@ -207,6 +215,12 @@ describe("multi-node coordination", { timeout: 30_000 }, () => {
     const countdown = firstSeen(a, "running")! - firstSeen(a, "restarting")!;
     expect(countdown).toBeGreaterThan(4500);
     expect(countdown).toBeLessThan(5500);
+
+    // Every node agrees on who reported the collision, and it's whichever of
+    // a or b noticed first, not c, which was never involved.
+    const reporters = new Set(cluster.map((node) => stoppedBy.get(node.nodeId)));
+    expect(reporters.size).toBe(1);
+    expect([a.nodeId, b.nodeId]).toContain([...reporters][0]);
   });
 
   it("keeps running when a node dies, and takes it back when it restarts", async () => {

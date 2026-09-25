@@ -42,7 +42,12 @@ function createNode(peerCount = 4) {
 
 type Node = ReturnType<typeof createNode>;
 
-const stop = (term: number, from = "node-7704") => ({ type: "STOP" as const, term, from });
+const stop = (term: number, from = "node-7704", reporter = "node-7702") => ({
+  type: "STOP" as const,
+  term,
+  from,
+  reporter,
+});
 const restart = (term: number, from: string) => ({ type: "RESTART" as const, term, from });
 
 /** A running node at `term` that has just obeyed STOP for `term + 1`. */
@@ -78,11 +83,12 @@ describe("term filtering", () => {
     const node = createNode();
     node.election.currentTerm = 5;
     node.simulation.start();
-    node.protocol.handleStop(stop(6, "node-7704"));
+    node.protocol.handleStop(stop(6, "node-7704", "node-7702"));
     expect(node.simulation.lifecycle).toBe("stopped");
     expect(node.election.currentTerm).toBe(6);
     expect(node.election.leaderId).toBe("node-7704");
     expect(node.protocol.state.awaitingRestart).toBe(true);
+    expect(node.protocol.state.stoppedBy).toBe("node-7702");
   });
 
   it("ignores a repeated STOP for the same term", () => {
@@ -118,6 +124,8 @@ describe("term filtering", () => {
     expect(node.simulation.lifecycle).toBe("stopped");
     expect(node.election.currentTerm).toBe(6);
     expect(node.protocol.state.restartBarrier.has("node-7704")).toBe(true);
+    // The reporter is unknown: RESTART carries no reporter, and the STOP is now too late to matter.
+    expect(node.protocol.state.stoppedBy).toBeNull();
 
     // The late STOP changes nothing.
     node.protocol.handleStop(stop(6));
@@ -250,7 +258,13 @@ describe("leader handling of collision reports", () => {
     expect(reply).toEqual({ accepted: true });
     expect(node.election.currentTerm).toBe(6);
     expect(node.simulation.lifecycle).toBe("stopped");
-    expect(node.broadcasts).toContainEqual({ type: "STOP", term: 6, from: SELF });
+    expect(node.protocol.state.stoppedBy).toBe("node-7702");
+    expect(node.broadcasts).toContainEqual({
+      type: "STOP",
+      term: 6,
+      from: SELF,
+      reporter: "node-7702",
+    });
 
     await vi.waitFor(() => {
       expect(node.broadcasts).toContainEqual({ type: "RESTART", term: 6, from: SELF });

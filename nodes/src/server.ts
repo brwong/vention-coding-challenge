@@ -122,7 +122,7 @@ export function createApp(
 
   app.get("/protocol-status", (_req, res) => {
     const { membership, election, position, protocol } = services;
-    const { lifecycle, restartBarrier, awaitingRestart, quorumSize } = protocol.state;
+    const { lifecycle, restartBarrier, awaitingRestart, quorumSize, stoppedBy } = protocol.state;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
@@ -133,6 +133,7 @@ export function createApp(
       restartBarrier: [...restartBarrier],
       awaitingRestart,
       quorumSize,
+      stoppedBy,
       peers: [...membership.peers.values()].map((peer) => ({
         nodeId: peer.nodeId,
         port: peer.port,

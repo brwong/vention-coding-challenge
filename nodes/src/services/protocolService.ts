@@ -17,6 +17,7 @@ export interface CoordinationState {
   restartBarrier: Set<string>; // nodes that sent RESTART for the current stop
   awaitingRestart: boolean; // stopped by the protocol and the RESTART barrier is still open
   quorumSize: number; // RESTART senders needed before the countdown starts
+  stoppedBy: string | null; // node whose collision report caused the current stop
 }
 
 /**
@@ -30,6 +31,7 @@ export class ProtocolService {
   private readonly restartBarrier = new Set<string>();
   private stoppedTerm = 0; // term of the latest STOP this node obeyed
   private restartedTerm = 0; // term of the latest stop whose barrier completed
+  private stoppedBy: string | null = null; // reporter carried by the latest STOP this node obeyed
   private barrierTimer: NodeJS.Timeout | undefined;
   private restartTimer: NodeJS.Timeout | undefined;
 
@@ -54,6 +56,7 @@ export class ProtocolService {
       restartBarrier: new Set(this.restartBarrier),
       awaitingRestart: this.stoppedTerm > this.restartedTerm,
       quorumSize: this.quorumSize,
+      stoppedBy: this.stoppedBy,
     };
   }
 
@@ -64,13 +67,13 @@ export class ProtocolService {
     }
     const term = this.election.bumpTerm();
     logEvent(`Collision reported by ${message.nodeId}; broadcasting STOP (term ${term})`);
-    this.enterStopped(term);
-    void this.stopThenRestart(term);
+    this.enterStopped(term, message.nodeId);
+    void this.stopThenRestart(term, message.nodeId);
     return { accepted: true };
   }
 
-  private async stopThenRestart(term: number): Promise<void> {
-    await this.broadcastStop(term);
+  private async stopThenRestart(term: number, reporter: string): Promise<void> {
+    await this.broadcastStop(term, reporter);
     await delay(STOP_TO_RESTART_DELAY_MS);
     // Leadership may have moved on; the barrier timeout then restarts everyone.
     if (this.election.isLeader && this.election.currentTerm === term) {
@@ -78,8 +81,8 @@ export class ProtocolService {
     }
   }
 
-  async broadcastStop(term: number): Promise<void> {
-    await this.membership.broadcast({ type: "STOP", term, from: this.nodeId });
+  async broadcastStop(term: number, reporter: string): Promise<void> {
+    await this.membership.broadcast({ type: "STOP", term, from: this.nodeId, reporter });
   }
 
   async broadcastRestart(term: number): Promise<void> {
@@ -92,11 +95,12 @@ export class ProtocolService {
     if (message.term < this.election.currentTerm || message.term <= this.stoppedTerm) return;
     this.election.adoptTerm(message.term, message.from);
     logEvent(`STOP received from ${message.from} (term ${message.term}), stopping simulation`);
-    this.enterStopped(message.term);
+    this.enterStopped(message.term, message.reporter);
   }
 
-  private enterStopped(term: number): void {
+  private enterStopped(term: number, reporter: string | null): void {
     this.stoppedTerm = term;
+    this.stoppedBy = reporter;
     this.simulation.stop();
     this.restartBarrier.clear();
     clearTimeout(this.restartTimer);
@@ -111,7 +115,8 @@ export class ProtocolService {
       // This RESTART overtook its STOP.
       this.election.adoptTerm(message.term);
       logEvent(`RESTART received before STOP (term ${message.term}), stopping simulation`);
-      this.enterStopped(message.term);
+      // The reporter is unknown here; a STOP for this term, if it still arrives, is now too late to update it.
+      this.enterStopped(message.term, null);
     }
     if (message.term <= this.restartedTerm) return;
 

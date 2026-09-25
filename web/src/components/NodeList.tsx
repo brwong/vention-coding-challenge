@@ -14,7 +14,6 @@ interface Props {
   statuses: Map<string, PendulumStatus>
   protocols: Map<string, ProtocolStatus>
   unreachable: Set<string>
-  lastUpdated: Map<string, number>
   selectedNodeId?: string
   // Nodes with a command in flight; their buttons are disabled until it settles.
   busyNodeIds: Set<string>
@@ -22,16 +21,11 @@ interface Props {
   onConfigure: (nodeId: string) => void
 }
 
-function formatTime(timestamp: number | undefined): string {
-  return timestamp === undefined ? '—' : new Date(timestamp).toLocaleTimeString()
-}
-
 export function NodeList({
   nodes,
   statuses,
   protocols,
   unreachable,
-  lastUpdated,
   selectedNodeId,
   busyNodeIds,
   onCommand,
@@ -45,7 +39,6 @@ export function NodeList({
             <th>Node</th>
             <th className="port">Port</th>
             <th>State</th>
-            <th className="updated">Last update</th>
             <th>
               <span className="visually-hidden">Actions</span>
             </th>
@@ -75,7 +68,6 @@ export function NodeList({
                     unreachable={node.status === 'inactive' || unreachable.has(node.nodeId)}
                   />
                 </td>
-                <td className="muted updated">{formatTime(lastUpdated.get(node.nodeId))}</td>
                 <td>
                   <div className="node-actions">
                     {NODE_COMMANDS.map(({ command, label }) => (

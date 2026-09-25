@@ -34,6 +34,7 @@ function protocolFor(node: FakeNode, leaderPort: number): ProtocolStatus {
     restartBarrier: [],
     awaitingRestart: false,
     quorumSize: 1,
+    stoppedBy: null,
   }
 }
 

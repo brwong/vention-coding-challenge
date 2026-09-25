@@ -229,14 +229,17 @@ describe("POST /message", () => {
     simulation.start();
     await request(app)
       .post("/message")
-      .send({ type: "STOP", term: 1, from: "node-7701" })
+      .send({ type: "STOP", term: 1, from: "node-7701", reporter: "node-7701" })
       .expect(200, { accepted: true });
     expect(simulation.lifecycle).toBe("stopped");
+    expect(protocol.state.stoppedBy).toBe("node-7701");
   });
 
   it("adds RESTART to the barrier", async () => {
     addPeer("node-7701", 7701);
-    await request(app).post("/message").send({ type: "STOP", term: 1, from: "node-7701" });
+    await request(app)
+      .post("/message")
+      .send({ type: "STOP", term: 1, from: "node-7701", reporter: "node-7701" });
     await request(app)
       .post("/message")
       .send({ type: "RESTART", term: 1, from: "node-7701" })

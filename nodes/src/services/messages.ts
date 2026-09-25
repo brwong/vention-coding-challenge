@@ -67,6 +67,7 @@ export interface StopMessage {
   type: "STOP";
   term: number;
   from: string;
+  reporter: string; // node whose collision report caused this STOP
 }
 
 export interface RestartMessage {
@@ -96,7 +97,7 @@ const MESSAGE_FIELDS: Record<MessageType, Record<string, FieldKind>> = {
   ELECTION_RESPONSE: { nodeId: "string", term: "number" },
   POSITION: { pendulumId: "string", angle: "number", seq: "number" },
   COLLISION_DETECTED: { nodeId: "string", term: "number" },
-  STOP: { term: "number", from: "string" },
+  STOP: { term: "number", from: "string", reporter: "string" },
   RESTART: { term: "number", from: "string" },
 };
 

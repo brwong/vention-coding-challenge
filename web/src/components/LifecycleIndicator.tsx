@@ -40,12 +40,19 @@ export function LifecycleIndicator({ status, protocol, unreachable }: Props) {
 
   const color = LIFECYCLE_COLORS[status.lifecycle]
   const detail = coordinationDetail(status, protocol)
+  // Only the node whose report caused the current stop gets the badge, and
+  // only while that stop is still current (not once it's running again).
+  const reportedCollision =
+    protocol?.stoppedBy != null &&
+    protocol.stoppedBy === protocol.nodeId &&
+    (status.lifecycle === 'stopped' || status.lifecycle === 'restarting')
   return (
     <span className="lifecycle">
       <span className="lifecycle-main">
         <span className="lifecycle-dot" style={{ background: color }} aria-hidden="true" />
         <span style={{ color }}>{status.lifecycle}</span>
         {protocol?.isLeader && <span className="badge">leader</span>}
+        {reportedCollision && <span className="badge badge-alert">collision</span>}
       </span>
       <span className="lifecycle-detail">{detail ?? <>&nbsp;</>}</span>
     </span>

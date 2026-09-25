@@ -50,6 +50,7 @@ export interface ProtocolStatus {
   restartBarrier: string[] // nodes this one has heard RESTART from
   awaitingRestart: boolean // stopped by a collision and still collecting RESTARTs
   quorumSize: number // RESTARTs needed before the restart countdown
+  stoppedBy: string | null // node whose collision report caused the current stop
 }
 
 export async function fetchProtocolStatus(port: number): Promise<ProtocolStatus> {
