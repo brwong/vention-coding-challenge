@@ -53,7 +53,7 @@ function App() {
   // Unapplied edits, shared by the form and the canvas. They belong to one node
   // and are ignored once another node is selected.
   const [draft, setDraft] = useState<{ nodeId: string; fields: ConfigDraft }>()
-  // Hidden while any node is playing; only an explicit Configure click brings it back.
+  // Hidden while any node is playing or mid-restart; only an explicit Configure click brings it back.
   const [configVisible, setConfigVisible] = useState(true)
   const [actionMessage, setActionMessage] = useState<{ text: string; error: boolean }>()
   const [busy, setBusy] = useState(false)
@@ -83,6 +83,15 @@ function App() {
   )
 
   useEffect(() => pollProtocolStates(nodes, setProtocols), [nodes])
+
+  // Also hide on a collision-triggered restart, which happens without going through
+  // runGroupCommand/runNodeCommand and so wouldn't otherwise clear configVisible.
+  useEffect(() => {
+    const anyPlaying = [...statuses.values()].some(
+      (status) => status.lifecycle === 'running' || status.lifecycle === 'restarting',
+    )
+    if (anyPlaying) setConfigVisible(false)
+  }, [statuses])
 
   const activeNodes = nodes.filter((node) => node.status === 'active')
 
