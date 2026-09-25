@@ -944,22 +944,22 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 7.2 Error Handling & Logging
 
-- [ ] Add graceful node shutdown
-  - [ ] Handle `SIGINT` and `SIGTERM`
-  - [ ] Stop timers and close the HTTP server
-  - [ ] Log a concise shutdown message
-  - [ ] Exit successfully after cleanup
+- [x] Add graceful node shutdown
+  - [x] Handle `SIGINT` and `SIGTERM`
+  - [x] Stop timers and close the HTTP server
+  - [x] Log a concise shutdown message
+  - [x] Exit successfully after cleanup
 
-- [ ] Improve API errors
-  - [ ] Return `400` for malformed or invalid configuration input
-  - [ ] Include a clear, safe validation message such as `{ "error": "length must be between 0.05 and 100" }`
-  - [ ] Return `404` for unknown endpoints
-  - [ ] Log unexpected internal errors server-side without exposing stack traces to the UI
+- [x] Improve API errors
+  - [x] Return `400` for malformed or invalid configuration input
+  - [x] Include a clear, safe validation message such as `{ "error": "length must be between 0.05 and 100" }`
+  - [x] Return `404` for unknown endpoints
+  - [x] Log unexpected internal errors server-side without exposing stack traces to the UI
 
-- [ ] Keep terminal logging useful but concise
-  - [ ] Log startup, selected port, node ID, and initial configuration
-  - [ ] Log peer joins, removals, leader changes, collisions, STOP, and RESTART transitions
-  - [ ] Avoid per-tick or per-position-message logging by default
+- [x] Keep terminal logging useful but concise
+  - [x] Log startup, selected port, node ID, and initial configuration
+  - [x] Log peer joins, removals, leader changes, collisions, STOP, and RESTART transitions
+  - [x] Avoid per-tick or per-position-message logging by default
 
 **Testable outcome:**
 - Invalid configuration requests receive understandable `400` responses
@@ -968,15 +968,16 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 7.3 UI Feedback & Accessibility
 
-- [ ] Add lightweight loading and error feedback
-  - [ ] Show an initial “Scanning for nodes…” state
-  - [ ] Clearly show when no reachable nodes were discovered
-  - [ ] Mark unreachable nodes separately from nodes that are reachable but stopped or paused
-  - [ ] Display configuration-update failures and partial group-action failures
-  - [ ] Display reported collision/restart state from nodes
+- [x] Add lightweight loading and error feedback
+  - [x] Show an initial “Scanning for nodes…” state
+  - [x] Clearly show when no reachable nodes were discovered
+  - [x] Mark unreachable nodes separately from nodes that are reachable but stopped or paused
+  - [x] Display configuration-update failures and partial group-action failures
+  - [x] Display reported collision/restart state from nodes
 
 - [ ] Apply minimal responsive and accessible styling
   - [ ] Keep the SVG visualization usable at typical laptop widths
+  - [ ] Add a horizontal line where the pendulum hinges are attached (visual only, doesn't affect physics or collisions)
   - [ ] Ensure controls remain usable on narrower viewports
   - [ ] Add labels to inputs and accessible names to buttons
   - [ ] Ensure keyboard users can select a node, edit values, apply configuration, and invoke controls
@@ -1028,41 +1029,41 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 7.5 Original Spec Verification
 
-- [ ] Verify server-side simulation requirements
-  - [ ] Each Node.js process owns exactly one pendulum simulation
-  - [ ] Initial angle, mass, and string length are configurable
-  - [ ] Five independent node instances run successfully together
-  - [ ] The design is not hard-coded to exactly five nodes
+- [x] Verify server-side simulation requirements
+  - [x] Each Node.js process owns exactly one pendulum simulation
+  - [x] Initial angle, mass, and string length are configurable
+  - [x] Five independent node instances run successfully together
+  - [x] The design is not hard-coded to exactly five nodes
 
-- [ ] Verify neighbor communication requirements
-  - [ ] Nodes discover and track peers on the local host
-  - [ ] Nodes share their positions with peers
-  - [ ] Collision detection uses a defined bob-to-bob threshold
-  - [ ] A detected collision is reported to the leader
-  - [ ] The leader sends STOP to the active cluster
-  - [ ] Nodes halt their local physics simulation after valid STOP
-  - [ ] The RESTART barrier behaves according to the chosen coordination contract
-  - [ ] Nodes wait five seconds after the restart barrier before resuming
-  - [ ] Duplicate, stale, and out-of-order protocol messages do not break coordination
-  - [ ] A stopped or failed peer does not crash the surviving nodes
+- [x] Verify neighbor communication requirements
+  - [x] Nodes discover and track peers on the local host
+  - [x] Nodes share their positions with peers
+  - [x] Collision detection uses a defined bob-to-bob threshold
+  - [x] A detected collision is reported to the leader
+  - [x] The leader sends STOP to the active cluster
+  - [x] Nodes halt their local physics simulation after valid STOP
+  - [x] The RESTART barrier behaves according to the chosen coordination contract
+  - [x] Nodes wait five seconds after the restart barrier before resuming
+  - [x] Duplicate, stale, and out-of-order protocol messages do not break coordination
+  - [x] A stopped or failed peer does not crash the surviving nodes
 
-- [ ] Verify web UI requirements
-  - [ ] React renders every discovered pendulum
-  - [ ] The UI reads current node configuration before simulation start
-  - [ ] The UI supports per-node configuration of angle, mass, length, and hinge position
-  - [ ] The UI exposes group Start, Pause, and Stop controls
-  - [ ] The UI updates visible state through periodic HTTP polling
-  - [ ] The UI reports partial failures for group actions
-  - [ ] The UI remains a client/controller; it does not become an authoritative simulator or coordinator
+- [x] Verify web UI requirements
+  - [x] React renders every discovered pendulum
+  - [x] The UI reads current node configuration before simulation start
+  - [x] The UI supports per-node configuration of angle, mass, length, and hinge position
+  - [x] The UI exposes group Start, Pause, and Stop controls
+  - [x] The UI updates visible state through periodic HTTP polling
+  - [x] The UI reports partial failures for group actions
+  - [x] The UI remains a client/controller; it does not become an authoritative simulator or coordinator
 
-- [ ] Verify code quality and submission requirements
-  - [ ] TypeScript is used consistently in nodes and web UI
-  - [ ] Automated tests cover physics, configuration validation, REST API behavior, and core coordination paths
-  - [ ] The test suite includes at least one real multi-process node-failure scenario
-  - [ ] Errors are handled clearly at API and UI boundaries
-  - [ ] README explains install, run, test, key trade-offs, and known limitations
-  - [ ] Repository excludes generated artifacts and dependencies via `.gitignore`
-  - [ ] Final repository is ready to share on GitHub
+- [x] Verify code quality and submission requirements
+  - [x] TypeScript is used consistently in nodes and web UI
+  - [x] Automated tests cover physics, configuration validation, REST API behavior, and core coordination paths
+  - [x] The test suite includes at least one real multi-process node-failure scenario
+  - [x] Errors are handled clearly at API and UI boundaries
+  - [x] README explains install, run, test, key trade-offs, and known limitations
+  - [x] Repository excludes generated artifacts and dependencies via `.gitignore`
+  - [x] Final repository is ready to share on GitHub
 
 **Testable outcome:**
 - A final manual walkthrough and the automated suite demonstrate every mandatory `spec.md` requirement.

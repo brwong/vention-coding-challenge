@@ -48,6 +48,7 @@ async function main(): Promise<void> {
   const stopStatusLogger = startStatusLogger(nodeId, simulation);
 
   const shutdown = () => {
+    logEvent(`Shutting down ${nodeId}`);
     stopHeartbeat();
     stopElectionTimer();
     protocol.dispose();
