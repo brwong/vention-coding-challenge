@@ -34,6 +34,14 @@ npm run dev
 
 It opens on Vite's default port (`5173`) and discovers running nodes by scanning `127.0.0.1:7700` upward.
 
+### Run the full demo with one script
+
+```sh
+./scripts/start-demo.sh
+```
+
+Builds the nodes once, then starts five node processes and the web UI as background jobs of the script, printing the UI URL when they're up. `Ctrl+C` stops all of them. This is a convenience script for local development and manual testing, not a process manager: it's plain bash (`&`/`wait`/`trap`), with no `concurrently`, Docker, or Windows-specific equivalent.
+
 ### Example: driving a node with curl
 
 Start a node with a long pendulum at 45°:

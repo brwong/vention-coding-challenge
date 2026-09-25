@@ -921,21 +921,21 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ### 7.1 Repeatable Local Startup
 
-- [ ] Create `scripts/start-demo.sh`
-  - [ ] Use `#!/usr/bin/env bash`
-  - [ ] Use `set -euo pipefail`
-  - [ ] Start five node processes from `/nodes`
-  - [ ] Start the web UI from `/web`
-  - [ ] Store child process IDs
-  - [ ] Add a `trap` for `INT` and `TERM` that stops all child processes cleanly
-  - [ ] Wait for child processes so the script remains active while the demo runs
-  - [ ] Print the expected UI URL and a short shutdown instruction
+- [x] Create `scripts/start-demo.sh`
+  - [x] Use `#!/usr/bin/env bash`
+  - [x] Use `set -euo pipefail`
+  - [x] Start five node processes from `/nodes`
+  - [x] Start the web UI from `/web`
+  - [x] Store child process IDs
+  - [x] Add a `trap` for `INT` and `TERM` that stops all child processes cleanly
+  - [x] Wait for child processes so the script remains active while the demo runs
+  - [x] Print the expected UI URL and a short shutdown instruction
 
-- [ ] Keep startup assumptions simple
-  - [ ] Each node independently claims the next available port beginning at `7700`
-  - [ ] Do not introduce a root-level package.json solely for orchestration
-  - [ ] Do not add `concurrently`, Docker, or Windows-specific startup scripts
-  - [ ] Document the shell script as a convenience for local development and manual testing
+- [x] Keep startup assumptions simple
+  - [x] Each node independently claims the next available port beginning at `7700`
+  - [x] Do not introduce a root-level package.json solely for orchestration
+  - [x] Do not add `concurrently`, Docker, or Windows-specific startup scripts
+  - [x] Document the shell script as a convenience for local development and manual testing
 
 **Testable outcome:**
 - Running `./scripts/start-demo.sh` starts five node processes and the web UI
@@ -998,7 +998,7 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
     - [x] Install instructions for `/nodes` and `/web`
     - [x] How to run one node manually
     - [x] How to run the web UI manually
-    - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo (deferred: script not implemented yet, see Section 7.1)
+    - [x] How to use `./scripts/start-demo.sh` for the five-node local demo
   - [x] **The architecture of the solution** [spec.md Submission]
     - [x] A few paragraphs on the node/web split, how nodes discover each other, and how the UI discovers nodes
     - [x] Keep it to a short summary; link to `interfaces.md` and `coordination.md` for the full contracts
