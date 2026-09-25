@@ -24,7 +24,12 @@ export class CollisionService {
     private readonly election: ElectionService,
   ) {}
 
-  /** Returns the first peer whose bob touches ours, if any. */
+  /**
+   * Returns the first peer whose bob touches ours, if any. Skips peers
+   * suspected dead: a silent peer's cached position is frozen where it last
+   * reported, so treating it as live risks a "ghost" collision with a bob
+   * that has stopped moving rather than a real one.
+   */
   findCollision(): Peer | null {
     const { config, state } = this.simulation;
     const local: Bob = {
@@ -34,6 +39,7 @@ export class CollisionService {
       mass: config.mass,
     };
     for (const peer of this.membership.peers.values()) {
+      if (this.membership.isSuspected(peer)) continue;
       const latest = this.position.positionCache.get(peer.nodeId);
       if (!latest) continue;
       const other: Bob = {

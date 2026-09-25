@@ -340,6 +340,18 @@ describe("collision detection", () => {
     expect(node.collision.findCollision()).toBeNull();
   });
 
+  it("ignores a suspected peer's frozen position, so a dead node's ghost cannot cause a collision", () => {
+    const node = nodeWithPeer(0, 20); // would otherwise collide
+    node.membership.peers.get("node-7701")!.lastHeartbeat = Date.now() - PEER_SUSPECT_MS - 1;
+    expect(node.collision.findCollision()).toBeNull();
+  });
+
+  it("still detects a collision with a peer that has recently sent a heartbeat", () => {
+    const node = nodeWithPeer(0, 20);
+    node.membership.peers.get("node-7701")!.lastHeartbeat = Date.now() - PEER_SUSPECT_MS + 500;
+    expect(node.collision.findCollision()?.nodeId).toBe("node-7701");
+  });
+
   it("uses the newest position by seq, even if messages arrive out of order", () => {
     const node = nodeWithPeer(0, -20);
     node.position.handlePosition({ type: "POSITION", pendulumId: "node-7701", angle: 0.35, seq: 5 });
