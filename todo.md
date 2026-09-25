@@ -991,36 +991,36 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 `docs/spec.md`'s Submission checklist takes priority over the general "keep it in docs/" preference below — the five items it lists must live in the README itself, not just be linked to. Everything else stays in the dedicated `docs/` files.
 
-- [ ] Update the root `README.md` to cover exactly what `spec.md` requires, kept brief
-  - [ ] Brief project description
-  - [ ] Prerequisites
-  - [ ] **How to install and run the project** [spec.md Submission]
-    - [ ] Install instructions for `/nodes` and `/web`
-    - [ ] How to run one node manually
-    - [ ] How to run the web UI manually
-    - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo
-  - [ ] **The architecture of the solution** [spec.md Submission]
-    - [ ] A few paragraphs on the node/web split, how nodes discover each other, and how the UI discovers nodes
-    - [ ] Keep it to a short summary; link to `interfaces.md` and `coordination.md` for the full contracts
-  - [ ] **Important technical decisions and trade-offs** [spec.md Submission]
-    - [ ] Summarize the decisions most relevant to a reviewer (e.g., HTTP polling instead of WebSockets, single-host-only, latest-known-state collision detection, Option B config caching from JOIN_RESPONSE)
-    - [ ] Keep it brief; link to the relevant docs file for the full rationale
-  - [ ] **Known limitations** [spec.md Submission]
-    - [ ] e.g., single-host-only operation, latest-known-state collision detection, N-node design not hard-coded to five
-  - [ ] **How to run the tests** [spec.md Submission]
-    - [ ] `npm test` - run all tests
-    - [ ] `npm run test:nodes` - run backend tests only
-    - [ ] `npm run test:web` - run frontend tests only
-    - [ ] `npm run test:watch` (inside `nodes` or `web`) - run in watch mode during development
-  - [ ] Keep the existing "example usage scenario" (the collision-causing multi-node walkthrough added in Sections 1/2.6/4.7) — don't remove it while reorganizing the README
+- [x] Update the root `README.md` to cover exactly what `spec.md` requires, kept brief
+  - [x] Brief project description
+  - [x] Prerequisites
+  - [x] **How to install and run the project** [spec.md Submission]
+    - [x] Install instructions for `/nodes` and `/web`
+    - [x] How to run one node manually
+    - [x] How to run the web UI manually
+    - [ ] How to use `./scripts/start-demo.sh` for the five-node local demo (deferred: script not implemented yet, see Section 7.1)
+  - [x] **The architecture of the solution** [spec.md Submission]
+    - [x] A few paragraphs on the node/web split, how nodes discover each other, and how the UI discovers nodes
+    - [x] Keep it to a short summary; link to `interfaces.md` and `coordination.md` for the full contracts
+  - [x] **Important technical decisions and trade-offs** [spec.md Submission]
+    - [x] Summarize the decisions most relevant to a reviewer (e.g., HTTP polling instead of WebSockets, single-host-only, latest-known-state collision detection, Option B config caching from JOIN_RESPONSE)
+    - [x] Keep it brief; link to the relevant docs file for the full rationale
+  - [x] **Known limitations** [spec.md Submission]
+    - [x] e.g., single-host-only operation, latest-known-state collision detection, N-node design not hard-coded to five
+  - [x] **How to run the tests** [spec.md Submission]
+    - [x] `npm test` - run all tests
+    - [x] `npm run test:nodes` - run backend tests only
+    - [x] `npm run test:web` - run frontend tests only
+    - [x] `npm run test:watch` (inside `nodes` or `web`) - run in watch mode during development
+  - [x] Keep the existing "example usage scenario" (the collision-causing multi-node walkthrough added in Sections 1/2.6/4.7) — don't remove it while reorganizing the README
 
-- [ ] Keep the majority of detailed documentation in the dedicated `docs/` files
-  - [ ] CLI/UI behavior and HTTP interaction: `interfaces.md`
-  - [ ] Membership, leadership, ordering, liveness, and STOP/RESTART behavior: `coordination.md`
-  - [ ] Motion, geometry, timing, and collision math: `physics.md`
-  - [ ] Full rationale behind each technical decision and trade-off, beyond the README's brief summary
-  - [ ] Do not duplicate those documents’ detailed contracts in the README
-  - [ ] Do not add architecture diagrams unless they become necessary
+- [x] Keep the majority of detailed documentation in the dedicated `docs/` files
+  - [x] CLI/UI behavior and HTTP interaction: `interfaces.md`
+  - [x] Membership, leadership, ordering, liveness, and STOP/RESTART behavior: `coordination.md`
+  - [x] Motion, geometry, timing, and collision math: `physics.md`
+  - [x] Full rationale behind each technical decision and trade-off, beyond the README's brief summary
+  - [x] Do not duplicate those documents’ detailed contracts in the README
+  - [x] Do not add architecture diagrams unless they become necessary
 
 **Testable outcome:**
 - A reviewer can install, run, stop, and test the project using the README alone, and the README on its own satisfies every bullet in `spec.md`'s Submission checklist
