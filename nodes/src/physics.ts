@@ -1,4 +1,5 @@
 import { COLLISION_MARGIN, DT, GRAVITY } from "./constants";
+import { type WindOn, type WindState, NO_WIND } from "./wind";
 
 export interface PendulumState {
   angle: number; // radians, normalized to [-π, π]
@@ -26,17 +27,65 @@ export function createPendulum(initialAngleDeg: number): PendulumState {
   };
 }
 
-/** Advances one fixed timestep using semi-implicit Euler. */
-export function updatePendulum(state: PendulumState, length: number): PendulumState {
-  const angularAcceleration = -(GRAVITY / length) * Math.sin(state.angle);
-  const angularVelocity = state.angularVelocity + angularAcceleration * DT;
-  const angle = normalizeAngle(state.angle + angularVelocity * DT);
-  return { angle, angularVelocity, angularAcceleration };
-}
-
 /** Radius of a unit-density sphere, where mass equals volume. */
 export function calculateBobRadius(mass: number): number {
   return Math.cbrt((3 * mass) / (4 * Math.PI));
+}
+
+/**
+ * Angular acceleration contributed by wind drag (see docs/bonus-wind.md). Uses
+ * relative velocity (wind minus the bob's own Cartesian velocity) so the drag
+ * force is proportional to relative speed squared, and projects it onto the
+ * pendulum's tangential direction to convert it to angular acceleration.
+ */
+export function calculateWindAcceleration(
+  state: Pick<PendulumState, "angle" | "angularVelocity">,
+  length: number,
+  mass: number,
+  wind: WindOn,
+): number {
+  const radius = calculateBobRadius(mass);
+  const area = Math.PI * radius ** 2;
+
+  const bobVelocity = {
+    x: length * Math.cos(state.angle) * state.angularVelocity,
+    y: -length * Math.sin(state.angle) * state.angularVelocity,
+  };
+  const windVelocity = {
+    x: wind.direction === "right" ? wind.speed : -wind.speed,
+    y: 0,
+  };
+  const relativeVelocity = {
+    x: windVelocity.x - bobVelocity.x,
+    y: windVelocity.y - bobVelocity.y,
+  };
+  const relativeSpeed = Math.hypot(relativeVelocity.x, relativeVelocity.y);
+
+  const dragScale = 0.5 * wind.airDensity * wind.dragCoefficient * area * relativeSpeed;
+  const windForce = {
+    x: dragScale * relativeVelocity.x,
+    y: dragScale * relativeVelocity.y,
+  };
+
+  const tangent = { x: Math.cos(state.angle), y: -Math.sin(state.angle) };
+  const tangentialForce = windForce.x * tangent.x + windForce.y * tangent.y;
+
+  return tangentialForce / (mass * length);
+}
+
+/** Advances one fixed timestep using semi-implicit Euler. Wind is optional and off by default. */
+export function updatePendulum(
+  state: PendulumState,
+  length: number,
+  mass: number,
+  wind: WindState = NO_WIND,
+): PendulumState {
+  const gravityAcceleration = -(GRAVITY / length) * Math.sin(state.angle);
+  const windAcceleration = wind.enabled ? calculateWindAcceleration(state, length, mass, wind) : 0;
+  const angularAcceleration = gravityAcceleration + windAcceleration;
+  const angularVelocity = state.angularVelocity + angularAcceleration * DT;
+  const angle = normalizeAngle(state.angle + angularVelocity * DT);
+  return { angle, angularVelocity, angularAcceleration };
 }
 
 /** Bob center in coordinates where positive y points downward. */

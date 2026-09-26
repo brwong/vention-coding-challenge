@@ -7,6 +7,7 @@ import type { PositionService } from "./services/positionService";
 import type { ProtocolService } from "./services/protocolService";
 import { type Message, MessageError, parseMessage, senderOf } from "./services/messages";
 import type { PendulumConfig, Simulation } from "./simulation";
+import { WindError, parseWindOnRequest } from "./wind";
 
 export interface NodeIdentity {
   nodeId: string;
@@ -113,6 +114,19 @@ export function createApp(
     });
   }
 
+  // Enables (or replaces) local wind; disabled by default and cleared on reset.
+  // Not reflected in GET /status: the UI owns the displayed wind state.
+  app.put("/wind", (req, res) => {
+    const wind = parseWindOnRequest(req.body);
+    simulation.setWind(wind);
+    res.json(wind);
+  });
+
+  app.delete("/wind", (_req, res) => {
+    simulation.clearWind();
+    res.json({ enabled: false });
+  });
+
   app.post("/message", async (req, res) => {
     const message = parseMessage(req.body);
     // JOIN adds its sender itself; anything else counts as a sign of life.
@@ -150,7 +164,7 @@ export function createApp(
   });
 
   const handleError: ErrorRequestHandler = (err, _req, res, _next) => {
-    if (err instanceof ConfigError || err instanceof MessageError) {
+    if (err instanceof ConfigError || err instanceof MessageError || err instanceof WindError) {
       res.status(400).json({ error: err.message });
     } else if (err.type === "entity.parse.failed") {
       res.status(400).json({ error: "Request body is not valid JSON" });

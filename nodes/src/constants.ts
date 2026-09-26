@@ -25,6 +25,12 @@ export const MAX_LENGTH = 200;
 export const MIN_ANGLE_RAD = -Math.PI;
 export const MAX_ANGLE_RAD = Math.PI;
 
+// Wind (see docs/bonus-wind.md).
+export const DEFAULT_AIR_DENSITY = 0.001225; // g/cm³ (1.225 kg/m³)
+export const DEFAULT_SPHERE_DRAG_COEFFICIENT = 0.47;
+export const MIN_WIND_SPEED = 0; // cm/s
+export const MAX_WIND_SPEED = 10000; // cm/s (100 m/s), a hard validation cap
+
 // Coordination timing. These are local timers only; nodes never compare clocks.
 export const MESSAGE_TIMEOUT_MS = 500; // give up on a peer request after this long
 export const HEARTBEAT_INTERVAL_MS = 500;

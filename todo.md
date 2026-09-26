@@ -1080,14 +1080,14 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 - [ ] Single-command local startup
 - [ ] Additional REST API and node-logic tests
 - [ ] Additional engineering improvements that demonstrate judgment
-- [ ] Wind simulation only if its scope is explicitly reconsidered
+- [x] Wind simulation, per the scope defined in `docs/bonus-wind.md`
 
 ---
 
 ## Future Enhancements (Post-MVP)
 
 - [ ] Multi-host support with `--peers=host1,host2` CLI flag [coordination:1]
-- [ ] Wind simulation (if spec is updated to allow it) [physics:1]
+- [x] Wind simulation (implemented per `docs/bonus-wind.md`; see Section 8) [physics:1]
 - [ ] WebSocket-based real-time updates instead of HTTP polling
 - [ ] Persistent configuration (save/load from file)
 - [ ] Recording and playback of simulations

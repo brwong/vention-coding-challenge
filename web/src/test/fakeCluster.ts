@@ -6,6 +6,7 @@ export interface FakeNode {
   lifecycle: Lifecycle
   // Commands such as 'start' that answer with an HTTP 500.
   failing?: Set<string>
+  windEnabled?: boolean
 }
 
 export function statusFor(node: FakeNode): PendulumStatus {
@@ -64,6 +65,16 @@ export function mockCluster(nodes: FakeNode[]) {
         command as 'start' | 'pause' | 'stop'
       ]
       return json({ lifecycle: node.lifecycle })
+    }
+    if (method === 'PUT' && route === '/wind') {
+      if (node.failing?.has('wind')) return json({ error: 'Internal server error' }, 500)
+      node.windEnabled = true
+      return json(JSON.parse(String(init?.body)))
+    }
+    if (method === 'DELETE' && route === '/wind') {
+      if (node.failing?.has('wind')) return json({ error: 'Internal server error' }, 500)
+      node.windEnabled = false
+      return json({ enabled: false })
     }
     return json({ error: 'Not found' }, 404)
   })

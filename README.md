@@ -62,6 +62,10 @@ curl http://localhost:7700/config
 curl -X PUT http://localhost:7700/config \
   -H 'Content-Type: application/json' \
   -d '{"angle": 30, "mass": 35}'            # resets the pendulum to the new initial angle
+curl -X PUT http://localhost:7700/wind \
+  -H 'Content-Type: application/json' \
+  -d '{"enabled": true, "direction": "right", "speed": 3000, "airDensity": 0.001225, "dragCoefficient": 0.47}'
+curl -X DELETE http://localhost:7700/wind  # disables wind again
 ```
 
 The node's terminal redraws a one-line status summary (angle, bob position and lifecycle) twice a second, and prints protocol events (peers joining, leader elections, collisions, STOP and RESTART) on separate lines above it.
@@ -101,19 +105,23 @@ The system has two kinds of process: **pendulum nodes** (Node.js/TypeScript/Expr
 
 Each node owns exactly one pendulum's simulation and runs it at a fixed 60 Hz timestep, regardless of whether anything is watching. On startup a node claims the first free port from `7700` upward, derives its ID from that port (`node-7701`), and probes the lower ports to find existing peers. From that point on, nodes talk directly to each other over HTTP: they exchange heartbeats and positions, elect a leader once a term, and route collision reports through the leader, which alone issues STOP and RESTART. This is peer-to-peer membership with leader-coordinated lifecycle transitions, not a fully leaderless design or a separate coordinator service.
 
-The web UI never simulates or coordinates anything itself. It discovers nodes by polling `127.0.0.1:7700` and upward over HTTP, then polls each discovered node's `/status` for state to render as SVG, and issues `/config`, `/start`, `/pause`, and `/stop` calls (individually or across all nodes) in response to user actions. It is a client/controller, and every configuration and lifecycle change is applied by calling the same REST endpoints a `curl` script would use.
+The web UI never simulates or coordinates anything itself. It discovers nodes by polling `127.0.0.1:7700` and upward over HTTP, then polls each discovered node's `/status` for state to render as SVG, and issues `/config`, `/start`, `/pause`, `/stop`, and `/wind` calls (individually or across all nodes) in response to user actions. It is a client/controller, and every configuration and lifecycle change is applied by calling the same REST endpoints a `curl` script would use.
 
-Full contracts live in [`docs/interfaces.md`](docs/interfaces.md) (CLI, HTTP API, UI/discovery behavior) and [`docs/coordination.md`](docs/coordination.md) (membership, election, collision detection, STOP/RESTART). Motion and collision math are in [`docs/physics.md`](docs/physics.md).
+Full contracts live in [`docs/interfaces.md`](docs/interfaces.md) (CLI, HTTP API, UI/discovery behavior) and [`docs/coordination.md`](docs/coordination.md) (membership, election, collision detection, STOP/RESTART). Motion and collision math are in [`docs/physics.md`](docs/physics.md); wind is in [`docs/bonus-wind.md`](docs/bonus-wind.md).
 
 ## Physics model
 
 Each pendulum is a simplified idealization, not a full rigid-body simulation:
 
 - The rod is rigid and massless, and does not participate in collision detection — only the spherical bob does. Hinge points can't collide either.
-- There's no friction, damping, or air resistance, so an undisturbed pendulum swings forever at constant amplitude. There's no wind (a possible future bonus goal, out of scope today).
+- There's no friction or damping, so an undisturbed pendulum with wind off swings forever at constant amplitude.
 - Motion uses the full nonlinear pendulum equation (`α = -(g/L)sin(θ)`), not a small-angle approximation.
 - Bobs are spherical and share one unit density, so radius is derived from mass (`r = ∛(3m/4π)`) rather than set independently.
 - Collisions are detected, not resolved: overlapping bobs trigger the STOP/RESTART protocol instead of bouncing or exchanging momentum.
+
+### Wind (bonus)
+
+Each node can carry a constant, horizontal wind (left or right) that adds a drag term to the pendulum equation, computed from wind and bob velocity's *relative* speed rather than a fixed force — so a bob swinging with the wind feels less drag than one swinging against it. Wind is off by default, is set per node with `PUT /wind` and cleared with `DELETE /wind`, and is not part of a node's ordinary `/status` response: the web UI is the sole owner of the displayed on/off state and sends the same command to every node. The existing collision-triggered restart is also this project's only "reset" operation, so it doubles as the wind reset: a node clears its own wind the moment it re-arms for RESTART (`Simulation.beginRestart()`), and the UI clears its displayed toggle the moment it sees any node enter `restarting`. Full contract, formulas, and validation limits are in [`docs/bonus-wind.md`](docs/bonus-wind.md).
 
 Full details, including units and the fixed-timestep integrator, are in [`docs/physics.md`](docs/physics.md).
 
@@ -124,6 +132,8 @@ Full details, including units and the fixed-timestep integrator, are in [`docs/p
 - **Latest-known-state collision detection.** Each node caches the most recent `POSITION` it has seen from each peer (by sequence number) and checks its own bob against that cache; there's no synchronized clock or interpolation between updates. This is simple and robust to message loss or reordering, at the cost of checking against slightly stale peer positions.
 - **Peer geometry from `JOIN_RESPONSE`, not from every `POSITION`.** A node learns peer length/anchor once, at join time, and assumes it stays fixed for the session, rather than re-sending full config on every position broadcast. This keeps position messages small; a peer that changes its length or hinge mid-run will be checked against its old geometry until it rejoins.
 - **Leader/lease/election for lifecycle, peer-to-peer for everything else.** Only STOP/RESTART decisions go through a leader; position sharing and collision detection are fully peer-to-peer and keep working even while an election is in progress.
+- **The UI, not the nodes, owns whether wind is "on."** A node only ever knows its own wind configuration and never reports it in `/status`; the web UI tracks the on/off toggle locally and re-sends `PUT`/`DELETE /wind` to every node it knows about. This matches [`docs/bonus-wind.md`](docs/bonus-wind.md) and avoids a second source of truth, at the cost of the UI's toggle being unable to detect a node that silently reverted (e.g. a mid-flight failed request only surfaces via the one-shot error message, not an ongoing indicator).
+- **Wind resets exactly where the pendulum already resets.** Rather than invent a second "reset" concept, wind is cleared at the one point the project already resets simulation state after a collision (`Simulation.beginRestart()`), and the UI clears its toggle when it observes any node enter `restarting`. A manual per-node `/stop` + `/start` does not clear wind, since that isn't the collision-triggered reset the bonus doc describes.
 
 ## Known limitations
 
@@ -132,6 +142,8 @@ Full details, including units and the fixed-timestep integrator, are in [`docs/p
 - The design supports any number of nodes (`N >= 2`) and isn't hard-coded to five, but the standard demo and multi-node tests use five.
 - No persistence: node configuration and simulation state live in memory and reset when a node restarts.
 - STOP/RESTART is routed through an elected leader with a quorum-based RESTART barrier, rather than the spec's literal wording of every node broadcasting STOP/RESTART directly and waiting for all peers; this trades strict spec wording for tolerance of a dead node during restart.
+- Wind is constant while enabled (no gusts/turbulence), horizontal-only (left/right), and applies only to the bob (not the rod), per [`docs/bonus-wind.md`](docs/bonus-wind.md)'s scope.
+- The UI's wind toggle is a best-effort mirror of node state: it reflects the last command it successfully sent (or a reset it observed), not a live readback, since nodes don't report wind in `/status`.
 
 ## Running the tests
 

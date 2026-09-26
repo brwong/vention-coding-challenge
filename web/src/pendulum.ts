@@ -57,3 +57,10 @@ export const CONFIG_LIMITS: Record<ConfigField, { min: number; max: number }> = 
   mass: { min: 35, max: 34000 },
   angle: { min: -180, max: 180 },
 }
+
+// Wind (see docs/bonus-wind.md). Nodes accept up to 10000 cm/s, but the UI
+// only exposes the suggested slider range, where the default bob's lean stays
+// visible without being extreme.
+export const DEFAULT_AIR_DENSITY = 0.001225 // g/cm³ (1.225 kg/m³)
+export const DEFAULT_DRAG_COEFFICIENT = 0.47
+export const WIND_SPEED_LIMITS = { min: 0, max: 5000 } // cm/s (0-50 m/s)

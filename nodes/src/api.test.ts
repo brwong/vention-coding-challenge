@@ -185,6 +185,59 @@ describe("lifecycle commands", () => {
   });
 });
 
+describe("PUT /wind", () => {
+  const VALID_WIND = {
+    enabled: true,
+    direction: "left",
+    speed: 500,
+    airDensity: 0.001225,
+    dragCoefficient: 0.47,
+  };
+
+  it("enables local wind state", async () => {
+    const res = await request(app).put("/wind").send(VALID_WIND).expect(200);
+    expect(res.body).toEqual(VALID_WIND);
+    expect(simulation.wind).toEqual(VALID_WIND);
+  });
+
+  it("replaces the previous wind configuration", async () => {
+    await request(app).put("/wind").send(VALID_WIND).expect(200);
+    const replacement = { ...VALID_WIND, direction: "right", speed: 2000 };
+    await request(app).put("/wind").send(replacement).expect(200);
+    expect(simulation.wind).toEqual(replacement);
+  });
+
+  it.each([
+    [{ ...VALID_WIND, enabled: false }, /"enabled"/],
+    [{ ...VALID_WIND, direction: "up" }, /"direction"/],
+    [{ ...VALID_WIND, speed: -1 }, /"speed"/],
+    [{ ...VALID_WIND, speed: 10001 }, /"speed"/],
+    [{ ...VALID_WIND, airDensity: 0 }, /"airDensity"/],
+    [{ ...VALID_WIND, dragCoefficient: -1 }, /"dragCoefficient"/],
+  ])("rejects %j with 400 and leaves wind unchanged", async (body, message) => {
+    const res = await request(app).put("/wind").send(body).expect(400);
+    expect(res.body.error).toMatch(message);
+    expect(simulation.wind).toEqual({ enabled: false });
+  });
+});
+
+describe("DELETE /wind", () => {
+  it("disables local wind state", async () => {
+    await request(app)
+      .put("/wind")
+      .send({ enabled: true, direction: "left", speed: 500, airDensity: 0.001225, dragCoefficient: 0.47 })
+      .expect(200);
+    const res = await request(app).delete("/wind").expect(200);
+    expect(res.body).toEqual({ enabled: false });
+    expect(simulation.wind).toEqual({ enabled: false });
+  });
+
+  it("is a no-op when wind is already disabled", async () => {
+    const res = await request(app).delete("/wind").expect(200);
+    expect(res.body).toEqual({ enabled: false });
+  });
+});
+
 describe("POST /message", () => {
   it("answers JOIN with this node and the peers it knows", async () => {
     addPeer("node-7701", 7701);

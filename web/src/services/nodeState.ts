@@ -156,3 +156,42 @@ export async function applyConfig(port: number, config: PendulumConfig): Promise
   }
   return body
 }
+
+export type WindDirection = 'left' | 'right'
+
+export interface WindOnConfig {
+  enabled: true
+  direction: WindDirection
+  speed: number // cm/s
+  airDensity: number // g/cm³
+  dragCoefficient: number
+}
+
+/**
+ * Enables (or replaces) a node's local wind. Throws with the node's error
+ * message, a timeout, or a network failure — the caller must not treat this
+ * as applied unless it resolves.
+ */
+export async function enableWind(port: number, wind: WindOnConfig): Promise<void> {
+  const response = await fetch(nodeUrl(port, '/wind'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(wind),
+    signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.error ?? `PUT /wind on port ${port} failed with ${response.status}`)
+  }
+}
+
+/** Disables a node's local wind. Same failure contract as enableWind. */
+export async function disableWind(port: number): Promise<void> {
+  const response = await fetch(nodeUrl(port, '/wind'), {
+    method: 'DELETE',
+    signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    throw new Error(`DELETE /wind on port ${port} failed with ${response.status}`)
+  }
+}

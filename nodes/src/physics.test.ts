@@ -1,20 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { COLLISION_MARGIN, DEFAULT_MASS, DT, GRAVITY, MAX_MASS, MIN_MASS, PHYSICS_HZ } from "./constants";
+import {
+  COLLISION_MARGIN,
+  DEFAULT_AIR_DENSITY,
+  DEFAULT_MASS,
+  DEFAULT_SPHERE_DRAG_COEFFICIENT,
+  DT,
+  GRAVITY,
+  MAX_MASS,
+  MIN_MASS,
+  PHYSICS_HZ,
+} from "./constants";
 import {
   type Bob,
   type PendulumState,
   calculateBobRadius,
+  calculateWindAcceleration,
   checkCollision,
   createPendulum,
   getPosition,
   normalizeAngle,
   updatePendulum,
 } from "./physics";
+import type { WindOn } from "./wind";
 
 const deg = (degrees: number) => (degrees * Math.PI) / 180;
 
-function run(state: PendulumState, length: number, steps: number): PendulumState {
-  for (let i = 0; i < steps; i++) state = updatePendulum(state, length);
+function run(state: PendulumState, length: number, steps: number, mass = DEFAULT_MASS): PendulumState {
+  for (let i = 0; i < steps; i++) state = updatePendulum(state, length, mass);
   return state;
 }
 
@@ -62,20 +74,21 @@ describe("normalizeAngle", () => {
 
 describe("updatePendulum", () => {
   const length = 100;
+  const mass = DEFAULT_MASS;
 
   it("swings a displaced pendulum back toward vertical", () => {
-    const next = updatePendulum(createPendulum(20), length);
+    const next = updatePendulum(createPendulum(20), length, mass);
     expect(next.angularAcceleration).toBeLessThan(0);
     expect(next.angularVelocity).toBeLessThan(0);
     expect(next.angle).toBeLessThan(deg(20));
 
-    const mirrored = updatePendulum(createPendulum(-20), length);
+    const mirrored = updatePendulum(createPendulum(-20), length, mass);
     expect(mirrored.angle).toBeCloseTo(-next.angle, 12);
   });
 
   it("uses semi-implicit Euler: the new velocity moves the angle", () => {
     const start = createPendulum(45);
-    const next = updatePendulum(start, length);
+    const next = updatePendulum(start, length, mass);
     const acceleration = -(GRAVITY / length) * Math.sin(start.angle);
     expect(next.angularAcceleration).toBeCloseTo(acceleration, 12);
     expect(next.angularVelocity).toBeCloseTo(acceleration * DT, 12);
@@ -85,7 +98,7 @@ describe("updatePendulum", () => {
   it("keeps the angle normalized and changing over 10 steps from 45°", () => {
     let state = createPendulum(45);
     for (let i = 0; i < 10; i++) {
-      const next = updatePendulum(state, length);
+      const next = updatePendulum(state, length, mass);
       expect(next.angle).not.toBe(state.angle);
       expect(Math.abs(next.angle)).toBeLessThanOrEqual(Math.PI);
       state = next;
@@ -94,7 +107,7 @@ describe("updatePendulum", () => {
 
   it("has negative angular velocity after swinging past vertical", () => {
     let state = createPendulum(30);
-    while (state.angle > 0) state = updatePendulum(state, length);
+    while (state.angle > 0) state = updatePendulum(state, length, mass);
     expect(state.angle).toBeLessThan(0);
     expect(state.angularVelocity).toBeLessThan(0);
   });
@@ -106,7 +119,7 @@ describe("updatePendulum", () => {
     let minAngle = Infinity;
     let maxAngle = -Infinity;
     for (let i = 0; i < 20 * PHYSICS_HZ; i++) {
-      state = updatePendulum(state, length);
+      state = updatePendulum(state, length, mass);
       minAngle = Math.min(minAngle, state.angle);
       maxAngle = Math.max(maxAngle, state.angle);
       expect(Math.abs(energy(state, length) - initial) / initial).toBeLessThan(0.05);
@@ -234,5 +247,89 @@ describe("checkCollision", () => {
     const b: Bob = { angle: deg(-30), anchor: { x: 100, y: 0 }, length: 100, mass: DEFAULT_MASS };
     expect(checkCollision(a, b)).toBe(true);
     expect(checkCollision({ ...a, angle: 0 }, { ...b, angle: 0 })).toBe(false);
+  });
+});
+
+describe("wind", () => {
+  const length = 100;
+  const mass = DEFAULT_MASS;
+  const atRest: Pick<PendulumState, "angle" | "angularVelocity"> = { angle: 0, angularVelocity: 0 };
+
+  const windRight = (speed: number): WindOn => ({
+    enabled: true,
+    direction: "right",
+    speed,
+    airDensity: DEFAULT_AIR_DENSITY,
+    dragCoefficient: DEFAULT_SPHERE_DRAG_COEFFICIENT,
+  });
+
+  describe("calculateWindAcceleration", () => {
+    it("is zero at rest when wind speed is zero", () => {
+      expect(calculateWindAcceleration(atRest, length, mass, windRight(0))).toBe(0);
+    });
+
+    it("matches the projected-circle drag formula (not the sphere's surface area)", () => {
+      const wind = windRight(500);
+      const radius = calculateBobRadius(mass);
+      const area = Math.PI * radius ** 2; // NOT 4 * Math.PI * radius ** 2
+      const dragScale = 0.5 * wind.airDensity * wind.dragCoefficient * area * wind.speed;
+      // tangent.x = cos(0) = 1 at rest, so the tangential force is the full wind force.
+      const expected = (dragScale * wind.speed) / (mass * length);
+      expect(calculateWindAcceleration(atRest, length, mass, wind)).toBeCloseTo(expected, 12);
+    });
+
+    it("pushes opposite ways for left and right wind of the same speed", () => {
+      const right = calculateWindAcceleration(atRest, length, mass, windRight(500));
+      const left = calculateWindAcceleration(atRest, length, mass, { ...windRight(500), direction: "left" });
+      expect(right).toBeGreaterThan(0);
+      expect(left).toBeCloseTo(-right, 12);
+    });
+
+    it("increases in magnitude as wind speed increases", () => {
+      const slow = Math.abs(calculateWindAcceleration(atRest, length, mass, windRight(500)));
+      const fast = Math.abs(calculateWindAcceleration(atRest, length, mass, windRight(2000)));
+      expect(fast).toBeGreaterThan(slow);
+    });
+
+    it("weakens as the bob's own motion closes the gap with the wind (relative velocity)", () => {
+      const wind = windRight(500);
+      const stillBob = calculateWindAcceleration(atRest, length, mass, wind);
+      // At angle 0, positive angular velocity moves the bob rightward, the same way as the wind.
+      const movingWithWind = calculateWindAcceleration({ angle: 0, angularVelocity: 2 }, length, mass, wind);
+      const movingAgainstWind = calculateWindAcceleration({ angle: 0, angularVelocity: -2 }, length, mass, wind);
+      expect(movingWithWind).toBeLessThan(stillBob);
+      expect(movingAgainstWind).toBeGreaterThan(stillBob);
+    });
+
+    it("decreases in magnitude as bob mass increases, for the same geometry and wind", () => {
+      const wind = windRight(1000);
+      const light = Math.abs(calculateWindAcceleration(atRest, length, MIN_MASS, wind));
+      const heavy = Math.abs(calculateWindAcceleration(atRest, length, MAX_MASS, wind));
+      expect(heavy).toBeLessThan(light);
+    });
+  });
+
+  describe("updatePendulum with wind", () => {
+    it("matches the gravity-only result when wind is disabled", () => {
+      const state = createPendulum(20);
+      expect(updatePendulum(state, length, mass, { enabled: false })).toEqual(
+        updatePendulum(state, length, mass),
+      );
+    });
+
+    it("does nothing extra when wind is enabled with zero speed at rest", () => {
+      const state = createPendulum(0);
+      expect(updatePendulum(state, length, mass, windRight(0))).toEqual(updatePendulum(state, length, mass));
+    });
+
+    it("displaces a bob balanced at the top, where gravity alone would leave it in place", () => {
+      const top: PendulumState = { angle: Math.PI, angularVelocity: 0, angularAcceleration: 0 };
+      const gravityOnly = updatePendulum(top, length, mass);
+      const withWind = updatePendulum(top, length, mass, windRight(5000));
+      // Gravity's sin(±π) term is ~0 by floating point, so it barely moves the bob.
+      expect(Math.abs(gravityOnly.angularVelocity)).toBeLessThan(1e-6);
+      expect(Math.abs(withWind.angularVelocity)).toBeGreaterThan(1e-6);
+      expect(withWind.angle).not.toBeCloseTo(top.angle, 6);
+    });
   });
 });

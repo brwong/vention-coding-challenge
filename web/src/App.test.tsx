@@ -97,3 +97,64 @@ describe('App', () => {
     expect(await within(table).findByText('Node unreachable', {}, { timeout: 3000 })).toBeInTheDocument()
   })
 })
+
+describe('wind', () => {
+  it('sends the drafted wind setting to every node on Apply', async () => {
+    const { fetchMock } = threeNodes()
+    render(<App />)
+    await listedNodeIds()
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+
+    expect(await screen.findByText('Wind enabled on 3/3 nodes')).toBeInTheDocument()
+    expect(callsTo(fetchMock, 'PUT', '/wind').sort()).toEqual(['7700', '7701', '7702'])
+    const [, init] = fetchMock.mock.calls.find(
+      ([input, reqInit]) => (reqInit?.method ?? 'GET') === 'PUT' && new URL(String(input)).pathname === '/wind',
+    )!
+    expect(JSON.parse(String(init!.body))).toMatchObject({ enabled: true, direction: 'right', speed: 0 })
+  })
+
+  it('reports a partial failure when one node rejects the wind command', async () => {
+    const { byPort } = threeNodes()
+    byPort.get(7701)!.failing = new Set(['wind'])
+    render(<App />)
+    await listedNodeIds()
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    expect(
+      await screen.findByText('Partial success: Wind enabled on 2/3 nodes; node-7701 failed'),
+    ).toBeInTheDocument()
+  })
+
+  it('sends DELETE /wind to every node when disabled and applied', async () => {
+    const { fetchMock } = threeNodes()
+    render(<App />)
+    await listedNodeIds()
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await screen.findByText('Wind enabled on 3/3 nodes')
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    expect(await screen.findByText('Wind disabled on 3/3 nodes')).toBeInTheDocument()
+    expect(callsTo(fetchMock, 'DELETE', '/wind').sort()).toEqual(['7700', '7701', '7702'])
+  })
+
+  it('clears the displayed wind state once a node starts restarting', async () => {
+    const { byPort } = threeNodes()
+    render(<App />)
+    await listedNodeIds()
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Wind' }) as HTMLInputElement
+    await userEvent.click(checkbox)
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await screen.findByText('Wind enabled on 3/3 nodes')
+    expect(checkbox.checked).toBe(true)
+
+    byPort.get(7701)!.lifecycle = 'restarting'
+    await vi.waitFor(() => expect(checkbox.checked).toBe(false), { timeout: 3000 })
+  })
+})

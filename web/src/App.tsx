@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { NodeConfigForm } from './components/NodeConfigForm'
 import { NodeList } from './components/NodeList'
 import { PendulumCanvas } from './components/PendulumCanvas'
+import { OFF_WIND_DRAFT, WindControl, type WindDraft } from './components/WindControl'
 import { type ConfigDraft, pruneDraft, resolveDraft } from './configDraft'
+import { DEFAULT_AIR_DENSITY, DEFAULT_DRAG_COEFFICIENT } from './pendulum'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
 import {
   type LifecycleCommand,
@@ -11,6 +13,8 @@ import {
   type ProtocolStatus,
   RUNNING_POLL_INTERVAL_MS,
   applyConfig,
+  disableWind,
+  enableWind,
   pollNodeStates,
   pollProtocolStates,
   sendCommand,
@@ -57,6 +61,9 @@ function App() {
   const [actionMessage, setActionMessage] = useState<{ text: string; error: boolean }>()
   const [busy, setBusy] = useState(false)
   const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
+  // The UI, not any node, owns the displayed wind state; nodes only see PUT/DELETE /wind.
+  const [windDraft, setWindDraft] = useState<WindDraft>(OFF_WIND_DRAFT)
+  const [windApplying, setWindApplying] = useState(false)
   // A node whose config form should take focus once it has rendered.
   const pendingFocus = useRef<string>(undefined)
   // Bumping this restarts the polling right away.
@@ -92,6 +99,13 @@ function App() {
     if (anyPlaying) setConfigVisible(false)
   }, [statuses])
 
+  // Restarting is the existing simulation reset operation; each node clears its
+  // own wind there, so the UI's displayed wind state must follow (docs/bonus-wind.md).
+  useEffect(() => {
+    const anyRestarting = [...statuses.values()].some((status) => status.lifecycle === 'restarting')
+    if (anyRestarting) setWindDraft(OFF_WIND_DRAFT)
+  }, [statuses])
+
   const activeNodes = nodes.filter((node) => node.status === 'active')
 
   async function runGroupCommand(command: LifecycleCommand) {
@@ -114,6 +128,38 @@ function App() {
     setBusy(false)
     // Poll now rather than wait out the idle interval, so the change shows at once.
     setPollKey((key) => key + 1)
+  }
+
+  // Sends the drafted wind setting to every active node. A per-node failure
+  // (rejection, timeout, or unreachable node) is reported, never presented as applied.
+  async function applyWind() {
+    setWindApplying(true)
+    const results = await Promise.allSettled(
+      activeNodes.map((node) =>
+        windDraft.enabled
+          ? enableWind(node.port, {
+              enabled: true,
+              direction: windDraft.direction,
+              speed: windDraft.speed,
+              airDensity: DEFAULT_AIR_DENSITY,
+              dragCoefficient: DEFAULT_DRAG_COEFFICIENT,
+            })
+          : disableWind(node.port),
+      ),
+    )
+    const failed = activeNodes.filter((_, i) => results[i].status === 'rejected')
+    const succeeded = activeNodes.length - failed.length
+    const verb = windDraft.enabled ? 'enabled' : 'disabled'
+    const counts = `Wind ${verb} on ${succeeded}/${activeNodes.length} nodes`
+    const failedIds = failed.map((node) => node.nodeId).join(', ')
+    if (failed.length === 0) {
+      setActionMessage({ text: counts, error: false })
+    } else if (succeeded === 0) {
+      setActionMessage({ text: `Failed: ${counts} (${failedIds} unreachable)`, error: true })
+    } else {
+      setActionMessage({ text: `Partial success: ${counts}; ${failedIds} failed`, error: true })
+    }
+    setWindApplying(false)
   }
 
   async function runNodeCommand(node: NodeInfo, command: LifecycleCommand) {
@@ -186,6 +232,13 @@ function App() {
               {label}
             </button>
           ))}
+          <WindControl
+            draft={windDraft}
+            onChange={setWindDraft}
+            onApply={applyWind}
+            applying={windApplying}
+            disabled={activeNodes.length === 0}
+          />
         </div>
         {actionMessage && (
           <p
