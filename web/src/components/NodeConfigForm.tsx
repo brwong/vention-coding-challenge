@@ -4,10 +4,10 @@ import { CONFIG_LIMITS, type ConfigField } from '../pendulum'
 import type { PendulumConfig } from '../services/nodeState'
 
 // x has no limits, so it gets no slider.
-const FIELDS: { field: ConfigField; label: string; slider: boolean }[] = [
-  { field: 'x', label: 'Hinge x', slider: false },
-  { field: 'length', label: 'Length', slider: true },
-  { field: 'mass', label: 'Mass', slider: true },
+const FIELDS: { field: ConfigField; label: string; slider: boolean; tooltip?: string }[] = [
+  { field: 'x', label: 'Anchor position', slider: false, tooltip: '(in cm)' },
+  { field: 'length', label: 'Length', slider: true, tooltip: '(in cm)' },
+  { field: 'mass', label: 'Mass', slider: true, tooltip: '(spherical, with a density of 1 g/cm³)' },
   { field: 'angle', label: 'Initial angle (°)', slider: true },
 ]
 
@@ -49,12 +49,14 @@ export function NodeConfigForm({ nodeId, currentConfig, draft, onDraftChange, on
   return (
     <form className="config-form" onSubmit={handleSubmit} aria-label={`Configure ${nodeId}`}>
       <h2>{nodeId}</h2>
-      {FIELDS.map(({ field, label, slider }, i) => {
+      {FIELDS.map(({ field, label, slider, tooltip }, i) => {
         const id = `${nodeId}-${field}`
         const { min, max } = CONFIG_LIMITS[field]
         return (
           <div key={field} className="field">
-            <label htmlFor={id}>{label}</label>
+            <label htmlFor={id} title={tooltip}>
+              {label}
+            </label>
             <input
               id={id}
               type="number"
