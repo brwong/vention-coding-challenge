@@ -27,6 +27,13 @@ const TOOLTIP_FONT_SIZE = 7
 const TOOLTIP_PADDING_X = 4
 const TOOLTIP_PADDING_Y = 3
 const TOOLTIP_GAP = 6 // space between a handle and its tooltip
+const APPLY_BUTTON_WIDTH = 46
+const APPLY_BUTTON_HEIGHT = 16
+const APPLY_BUTTON_OFFSET = 18 // clearance from the bob's edge to the button's near edge
+// Upper bound (by the triangle inequality) on how far the apply button's farthest corner can
+// land beyond the pendulum's normal reach circle; reserved in the viewBox so it never clips.
+const APPLY_BUTTON_CLEARANCE =
+  APPLY_BUTTON_OFFSET + Math.hypot(APPLY_BUTTON_WIDTH / 2, APPLY_BUTTON_HEIGHT / 2)
 
 type DragPart = 'hinge' | 'length' | 'angle' | 'mass'
 
@@ -44,7 +51,11 @@ interface Props {
   selectedNodeId?: string
   // The selected node's config with the unapplied edits laid over it.
   draftConfig?: PendulumConfig
+  // Whether draftConfig differs from the node's applied config.
+  dirty: boolean
+  applyingDraft: boolean
   onDraftChange: (changes: Partial<PendulumConfig>) => void
+  onApplyDraft: () => void
   onSelect: (nodeId: string) => void
 }
 
@@ -67,7 +78,9 @@ function viewBox(
     const status = statuses.get(node.nodeId)
     return { x: hingeX(node, status), r: reach(status?.config) }
   })
-  if (draftConfig) extents.push({ x: draftConfig.x, r: reach(draftConfig) })
+  // Always reserve room for the floating apply button, even when not dirty yet, so the
+  // view doesn't resize the moment a drag makes it appear.
+  if (draftConfig) extents.push({ x: draftConfig.x, r: reach(draftConfig) + APPLY_BUTTON_CLEARANCE })
 
   let minX = Infinity
   let maxX = -Infinity
@@ -123,7 +136,10 @@ export function PendulumCanvas({
   unreachable,
   selectedNodeId,
   draftConfig,
+  dirty,
+  applyingDraft,
   onDraftChange,
+  onApplyDraft,
   onSelect,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -237,10 +253,13 @@ export function PendulumCanvas({
         <DraftPendulum
           config={draftConfig}
           dragging={drag?.part}
+          dirty={dirty}
+          applying={applyingDraft}
           onHingeDown={(event) => startDrag('hinge', event)}
           onLengthDown={(event) => startDrag('length', event)}
           onAngleDown={(event) => startDrag('angle', event)}
           onMassDown={(event) => startDrag('mass', event)}
+          onApply={onApplyDraft}
         />
       )}
     </svg>
@@ -250,20 +269,26 @@ export function PendulumCanvas({
 interface DraftPendulumProps {
   config: PendulumConfig
   dragging?: DragPart
+  dirty: boolean
+  applying: boolean
   onHingeDown: (event: PointerEvent<SVGElement>) => void
   onLengthDown: (event: PointerEvent<SVGElement>) => void
   onAngleDown: (event: PointerEvent<SVGElement>) => void
   onMassDown: (event: PointerEvent<SVGElement>) => void
+  onApply: () => void
 }
 
 /** The selected pendulum at its draft config, with a separate drag handle per field. */
 function DraftPendulum({
   config,
   dragging,
+  dirty,
+  applying,
   onHingeDown,
   onLengthDown,
   onAngleDown,
   onMassDown,
+  onApply,
 }: DraftPendulumProps) {
   const [hovered, setHovered] = useState<DragPart>()
   const active = dragging ?? hovered
@@ -281,6 +306,12 @@ function DraftPendulum({
   }
   // The far edge of the bob, away from the hinge, so it reads as a resize grip on the circle.
   const massHandle = { x: bob.x + unit.x * radius, y: bob.y + unit.y * radius }
+  // 90° from the rod, so the button sits beside the bob rather than along the swing itself.
+  const perp = { x: unit.y, y: -unit.x }
+  const applyButton = {
+    x: bob.x + perp.x * (radius + APPLY_BUTTON_OFFSET),
+    y: bob.y + perp.y * (radius + APPLY_BUTTON_OFFSET),
+  }
   const handlePositions: Record<DragPart, Point> = {
     hinge: { x: config.x, y: HINGE_Y },
     angle: angleHandle,
@@ -339,6 +370,43 @@ function DraftPendulum({
         {...hoverProps('mass')}
       />
       {active && <HandleTooltip {...handlePositions[active]} text={HANDLE_LABELS[active]} />}
+      {dirty && (
+        <ApplyButton x={applyButton.x} y={applyButton.y} applying={applying} onApply={onApply} />
+      )}
+    </g>
+  )
+}
+
+interface ApplyButtonProps extends Point {
+  applying: boolean
+  onApply: () => void
+}
+
+/** A floating apply control beside the bob, so applying doesn't require reaching for the form. */
+function ApplyButton({ x, y, applying, onApply }: ApplyButtonProps) {
+  function activate() {
+    if (!applying) onApply()
+  }
+
+  return (
+    <g
+      className={applying ? 'apply-draft-button applying' : 'apply-draft-button'}
+      role="button"
+      tabIndex={0}
+      aria-label={applying ? 'Applying configuration changes' : 'Apply configuration changes'}
+      aria-disabled={applying}
+      transform={`translate(${x - APPLY_BUTTON_WIDTH / 2}, ${y - APPLY_BUTTON_HEIGHT / 2})`}
+      onClick={activate}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        activate()
+      }}
+    >
+      <rect width={APPLY_BUTTON_WIDTH} height={APPLY_BUTTON_HEIGHT} rx={4} />
+      <text x={APPLY_BUTTON_WIDTH / 2} y={APPLY_BUTTON_HEIGHT / 2} fontSize={TOOLTIP_FONT_SIZE}>
+        {applying ? 'Applying…' : 'Apply'}
+      </text>
     </g>
   )
 }

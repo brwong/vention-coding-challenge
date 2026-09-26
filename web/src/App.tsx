@@ -66,6 +66,8 @@ function App() {
   // The configuration last confirmed sent to every node; Save is enabled once the draft diverges from this.
   const [windSaved, setWindSaved] = useState<WindDraft>(OFF_WIND_DRAFT)
   const [windApplying, setWindApplying] = useState(false)
+  // Applying the draft from the canvas's own floating Apply button, alongside the form's.
+  const [applyingDraft, setApplyingDraft] = useState(false)
   // A node whose config form should take focus once it has rendered.
   const pendingFocus = useRef<string>(undefined)
   // Bumping this restarts the polling right away.
@@ -205,6 +207,7 @@ function App() {
   const selected = selectedNode?.nodeId
   const selectedStatus = selected === undefined ? undefined : statuses.get(selected)
   const draftFields = draft && draft.nodeId === selected ? draft.fields : {}
+  const draftDirty = Object.keys(draftFields).length > 0
 
   function updateDraft(fields: ConfigDraft) {
     if (!selectedStatus) return
@@ -222,6 +225,25 @@ function App() {
   async function applySelectedConfig(config: PendulumConfig) {
     await applyConfig(selectedNode.port, config)
     setPollKey((key) => key + 1)
+  }
+
+  // The canvas's own Apply button, next to the pendulum; mirrors the config form's Apply
+  // but reports failures via the shared action message instead of an inline form error.
+  async function applyDraftFromCanvas() {
+    if (!selectedStatus || !draftDirty || applyingDraft) return
+    setApplyingDraft(true)
+    try {
+      await applySelectedConfig(resolveDraft(selectedStatus.config, draftFields))
+      updateDraft({})
+      setActionMessage({ text: `${selectedStatus.nodeId} configuration applied`, error: false })
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      setActionMessage({
+        text: `Failed to apply ${selectedStatus.nodeId} configuration: ${reason}`,
+        error: true,
+      })
+    }
+    setApplyingDraft(false)
   }
 
   return (
@@ -278,7 +300,10 @@ function App() {
             draftConfig={
               configVisible && selectedStatus ? resolveDraft(selectedStatus.config, draftFields) : undefined
             }
+            dirty={draftDirty}
+            applyingDraft={applyingDraft}
             onDraftChange={dragDraft}
+            onApplyDraft={applyDraftFromCanvas}
             onSelect={setSelectedNodeId}
           />
           <aside>

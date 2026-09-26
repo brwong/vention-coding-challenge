@@ -333,6 +333,33 @@ button:disabled {
   cursor: nwse-resize;
 }
 
+.pendulum-canvas .apply-draft-button {
+  cursor: pointer;
+}
+
+.pendulum-canvas .apply-draft-button rect {
+  fill: var(--accent);
+}
+
+.pendulum-canvas .apply-draft-button text {
+  fill: var(--bg);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-weight: 600;
+}
+
+.pendulum-canvas .apply-draft-button:hover rect {
+  fill: var(--fg);
+}
+
+.pendulum-canvas .apply-draft-button.applying {
+  cursor: default;
+}
+
+.pendulum-canvas .apply-draft-button.applying rect {
+  fill: var(--muted);
+}
+
 .pendulum-canvas .handle-tooltip {
   pointer-events: none;
 }
@@ -454,7 +481,8 @@ button:disabled {
 
 button:focus-visible,
 input:focus-visible,
-.pendulum-canvas .pendulum:focus-visible {
+.pendulum-canvas .pendulum:focus-visible,
+.pendulum-canvas .apply-draft-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
