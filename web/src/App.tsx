@@ -63,6 +63,8 @@ function App() {
   const [busyNodeIds, setBusyNodeIds] = useState(new Set<string>())
   // The UI, not any node, owns the displayed wind state; nodes only see PUT/DELETE /wind.
   const [windDraft, setWindDraft] = useState<WindDraft>(OFF_WIND_DRAFT)
+  // The configuration last confirmed sent to every node; Save is enabled once the draft diverges from this.
+  const [windSaved, setWindSaved] = useState<WindDraft>(OFF_WIND_DRAFT)
   const [windApplying, setWindApplying] = useState(false)
   // A node whose config form should take focus once it has rendered.
   const pendingFocus = useRef<string>(undefined)
@@ -103,7 +105,10 @@ function App() {
   // own wind there, so the UI's displayed wind state must follow (docs/bonus-wind.md).
   useEffect(() => {
     const anyRestarting = [...statuses.values()].some((status) => status.lifecycle === 'restarting')
-    if (anyRestarting) setWindDraft(OFF_WIND_DRAFT)
+    if (anyRestarting) {
+      setWindDraft(OFF_WIND_DRAFT)
+      setWindSaved(OFF_WIND_DRAFT)
+    }
   }, [statuses])
 
   const activeNodes = nodes.filter((node) => node.status === 'active')
@@ -131,7 +136,8 @@ function App() {
   }
 
   // Sends the drafted wind setting to every active node. A per-node failure
-  // (rejection, timeout, or unreachable node) is reported, never presented as applied.
+  // (rejection, timeout, or unreachable node) is reported, never presented as applied,
+  // and leaves the draft dirty so Save stays enabled for a retry.
   async function applyWind() {
     setWindApplying(true)
     const results = await Promise.allSettled(
@@ -154,6 +160,7 @@ function App() {
     const failedIds = failed.map((node) => node.nodeId).join(', ')
     if (failed.length === 0) {
       setActionMessage({ text: counts, error: false })
+      setWindSaved(windDraft)
     } else if (succeeded === 0) {
       setActionMessage({ text: `Failed: ${counts} (${failedIds} unreachable)`, error: true })
     } else {
@@ -234,6 +241,7 @@ function App() {
           ))}
           <WindControl
             draft={windDraft}
+            saved={windSaved}
             onChange={setWindDraft}
             onApply={applyWind}
             applying={windApplying}

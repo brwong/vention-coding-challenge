@@ -114,7 +114,7 @@ Full contracts live in [`docs/interfaces.md`](docs/interfaces.md) (CLI, HTTP API
 Each pendulum is a simplified idealization, not a full rigid-body simulation:
 
 - The rod is rigid and massless, and does not participate in collision detection — only the spherical bob does. Hinge points can't collide either.
-- There's no friction or damping, so an undisturbed pendulum with wind off swings forever at constant amplitude.
+- There's no friction or damping, so an undisturbed pendulum with wind off swings forever at constant amplitude (wind is the exception: its relative-velocity drag also damps the bob's own motion, and since wind is assumed constant rather than gusting, that damping has a fixed target to settle toward, so oscillations decay to a standstill at a wind-dependent lean angle rather than continuing indefinitely).
 - Motion uses the full nonlinear pendulum equation (`α = -(g/L)sin(θ)`), not a small-angle approximation.
 - Bobs are spherical and share one unit density, so radius is derived from mass (`r = ∛(3m/4π)`) rather than set independently.
 - Collisions are detected, not resolved: overlapping bobs trigger the STOP/RESTART protocol instead of bouncing or exchanging momentum.

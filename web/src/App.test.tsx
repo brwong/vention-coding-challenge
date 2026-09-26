@@ -99,46 +99,65 @@ describe('App', () => {
 })
 
 describe('wind', () => {
-  it('sends the drafted wind setting to every node on Apply', async () => {
+  it('disables Save until the wind toggle is dirty, then re-disables it once saved', async () => {
+    threeNodes()
+    render(<App />)
+    await listedNodeIds()
+
+    const save = screen.getByRole('button', { name: 'Save' })
+    expect(save).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind' }))
+    expect(save).toBeEnabled()
+
+    await userEvent.click(save)
+    await screen.findByText('Wind enabled on 3/3 nodes')
+    expect(save).toBeDisabled()
+  })
+
+  it('sends the drafted wind setting to every node on Save', async () => {
     const { fetchMock } = threeNodes()
     render(<App />)
     await listedNodeIds()
 
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind direction' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Wind enabled on 3/3 nodes')).toBeInTheDocument()
     expect(callsTo(fetchMock, 'PUT', '/wind').sort()).toEqual(['7700', '7701', '7702'])
     const [, init] = fetchMock.mock.calls.find(
       ([input, reqInit]) => (reqInit?.method ?? 'GET') === 'PUT' && new URL(String(input)).pathname === '/wind',
     )!
-    expect(JSON.parse(String(init!.body))).toMatchObject({ enabled: true, direction: 'right', speed: 0 })
+    expect(JSON.parse(String(init!.body))).toMatchObject({ enabled: true, direction: 'left', speed: 0 })
   })
 
-  it('reports a partial failure when one node rejects the wind command', async () => {
+  it('reports a partial failure when one node rejects the wind command, and keeps Save enabled to retry', async () => {
     const { byPort } = threeNodes()
     byPort.get(7701)!.failing = new Set(['wind'])
     render(<App />)
     await listedNodeIds()
 
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind' }))
+    const save = screen.getByRole('button', { name: 'Save' })
+    await userEvent.click(save)
     expect(
       await screen.findByText('Partial success: Wind enabled on 2/3 nodes; node-7701 failed'),
     ).toBeInTheDocument()
+    expect(save).toBeEnabled()
   })
 
-  it('sends DELETE /wind to every node when disabled and applied', async () => {
+  it('sends DELETE /wind to every node when disabled and saved', async () => {
     const { fetchMock } = threeNodes()
     render(<App />)
     await listedNodeIds()
 
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Wind enabled on 3/3 nodes')
 
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Wind' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Wind' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Wind disabled on 3/3 nodes')).toBeInTheDocument()
     expect(callsTo(fetchMock, 'DELETE', '/wind').sort()).toEqual(['7700', '7701', '7702'])
   })
@@ -148,13 +167,15 @@ describe('wind', () => {
     render(<App />)
     await listedNodeIds()
 
-    const checkbox = screen.getByRole('checkbox', { name: 'Wind' }) as HTMLInputElement
-    await userEvent.click(checkbox)
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Wind' }))
+    const windToggle = screen.getByRole('switch', { name: 'Wind' }) as HTMLInputElement
+    await userEvent.click(windToggle)
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Wind enabled on 3/3 nodes')
-    expect(checkbox.checked).toBe(true)
+    expect(windToggle.checked).toBe(true)
 
     byPort.get(7701)!.lifecycle = 'restarting'
-    await vi.waitFor(() => expect(checkbox.checked).toBe(false), { timeout: 3000 })
+    await vi.waitFor(() => expect(windToggle.checked).toBe(false), { timeout: 3000 })
+    // Reset synced the saved state too, so there is nothing pending to Save.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 })
