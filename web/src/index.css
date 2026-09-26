@@ -226,6 +226,15 @@ button.selected {
   stroke-dasharray: 3 2;
 }
 
+/* The draft bob is purely visual; the mass-handle square on its edge is what's draggable. */
+.pendulum-canvas .draft-bob {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}
+
 .pendulum-canvas .handle {
   fill: var(--accent);
   fill-opacity: 0.15;
@@ -238,6 +247,14 @@ button.selected {
 
 .pendulum-canvas .hinge-handle {
   cursor: ew-resize;
+}
+
+.pendulum-canvas .angle-handle {
+  fill-opacity: 0.35;
+}
+
+.pendulum-canvas .mass-handle {
+  cursor: nwse-resize;
 }
 
 .pendulum-canvas .handle:hover,

@@ -17,8 +17,14 @@ const PADDING = 20 // distance units around the outermost swing
 const UNREACHABLE_REACH = 20 // space kept around a hinge with no known config
 const HINGE_SIZE = 4
 const HINGE_HANDLE_SIZE = 10
+const LENGTH_HANDLE_SIZE = 8
+const ANGLE_HANDLE_RADIUS = 5
+const MASS_HANDLE_SIZE = 8
+// Where the angle and length handles sit along the rod, as a fraction of its length.
+const ANGLE_HANDLE_FRACTION = 0.3
+const LENGTH_HANDLE_FRACTION = 0.85
 
-type DragPart = 'hinge' | 'bob'
+type DragPart = 'hinge' | 'length' | 'angle' | 'mass'
 
 interface Props {
   nodes: NodeInfo[]
@@ -68,16 +74,35 @@ function viewBox(
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const round = (value: number, places: number) => Number(value.toFixed(places))
 
-/** The draft change a drag of `part` to `point` makes. */
+/** Unit vector along the rod, from the hinge toward the bob. Angle 0 hangs straight down. */
+function rodUnit(angle: number): Point {
+  const rad = (angle * Math.PI) / 180
+  return { x: Math.sin(rad), y: Math.cos(rad) }
+}
+
+/** The draft change a drag of `part` to `point` makes. Each part edits exactly one field. */
 function dragChange(part: DragPart, point: Point, config: PendulumConfig): Partial<PendulumConfig> {
-  if (part === 'hinge') return { x: Math.round(point.x) }
   const dx = point.x - config.x
   const dy = point.y - HINGE_Y
-  const { min, max } = CONFIG_LIMITS.length
-  return {
-    length: Math.round(clamp(Math.hypot(dx, dy), min, max)),
-    // Angle 0 hangs straight down and positive swings toward +x.
-    angle: round((Math.atan2(dx, dy) * 180) / Math.PI, 1),
+  switch (part) {
+    case 'hinge':
+      return { x: Math.round(point.x) }
+    case 'angle':
+      // Positive angle swings the bob toward +x.
+      return { angle: round((Math.atan2(dx, dy) * 180) / Math.PI, 1) }
+    case 'length': {
+      const unit = rodUnit(config.angle)
+      // Only movement along the rod's current direction changes its length.
+      const projected = dx * unit.x + dy * unit.y
+      const { min, max } = CONFIG_LIMITS.length
+      return { length: Math.round(clamp(projected, min, max)) }
+    }
+    case 'mass': {
+      const bob = bobPosition(config.x, config.length, (config.angle * Math.PI) / 180)
+      const radius = Math.hypot(point.x - bob.x, point.y - bob.y)
+      const { min, max } = CONFIG_LIMITS.mass
+      return { mass: Math.round(clamp((4 / 3) * Math.PI * radius ** 3, min, max)) }
+    }
   }
 }
 
@@ -202,7 +227,9 @@ export function PendulumCanvas({
           config={draftConfig}
           dragging={drag?.part}
           onHingeDown={(event) => startDrag('hinge', event)}
-          onBobDown={(event) => startDrag('bob', event)}
+          onLengthDown={(event) => startDrag('length', event)}
+          onAngleDown={(event) => startDrag('angle', event)}
+          onMassDown={(event) => startDrag('mass', event)}
         />
       )}
     </svg>
@@ -213,12 +240,37 @@ interface DraftPendulumProps {
   config: PendulumConfig
   dragging?: DragPart
   onHingeDown: (event: PointerEvent<SVGElement>) => void
-  onBobDown: (event: PointerEvent<SVGElement>) => void
+  onLengthDown: (event: PointerEvent<SVGElement>) => void
+  onAngleDown: (event: PointerEvent<SVGElement>) => void
+  onMassDown: (event: PointerEvent<SVGElement>) => void
 }
 
-/** The selected pendulum at its draft config and initial angle, with draggable hinge and bob. */
-function DraftPendulum({ config, dragging, onHingeDown, onBobDown }: DraftPendulumProps) {
+/** The selected pendulum at its draft config, with a separate drag handle per field. */
+function DraftPendulum({
+  config,
+  dragging,
+  onHingeDown,
+  onLengthDown,
+  onAngleDown,
+  onMassDown,
+}: DraftPendulumProps) {
+  const unit = rodUnit(config.angle)
   const bob = bobPosition(config.x, config.length, (config.angle * Math.PI) / 180)
+  const radius = bobRadius(config.mass)
+  const angleHandle = {
+    x: config.x + unit.x * config.length * ANGLE_HANDLE_FRACTION,
+    y: HINGE_Y + unit.y * config.length * ANGLE_HANDLE_FRACTION,
+  }
+  const lengthHandle = {
+    x: config.x + unit.x * config.length * LENGTH_HANDLE_FRACTION,
+    y: HINGE_Y + unit.y * config.length * LENGTH_HANDLE_FRACTION,
+  }
+  // The far edge of the bob, away from the hinge, so it reads as a resize grip on the circle.
+  const massHandle = { x: bob.x + unit.x * radius, y: bob.y + unit.y * radius }
+
+  const handleClass = (part: DragPart, extra: string) =>
+    dragging === part ? `handle ${extra} active` : `handle ${extra}`
+
   return (
     <g className="draft">
       <line x1={config.x} y1={HINGE_Y} x2={bob.x} y2={bob.y} className="draft-rod" />
@@ -227,20 +279,41 @@ function DraftPendulum({ config, dragging, onHingeDown, onBobDown }: DraftPendul
         y={HINGE_Y - HINGE_HANDLE_SIZE / 2}
         width={HINGE_HANDLE_SIZE}
         height={HINGE_HANDLE_SIZE}
-        className={dragging === 'hinge' ? 'handle hinge-handle active' : 'handle hinge-handle'}
+        className={handleClass('hinge', 'hinge-handle')}
         onPointerDown={onHingeDown}
       >
-        <title>Drag to move the hinge</title>
+        <title>Drag left or right to move the hinge</title>
       </rect>
       <circle
-        cx={bob.x}
-        cy={bob.y}
-        r={bobRadius(config.mass)}
-        className={dragging === 'bob' ? 'handle bob-handle active' : 'handle bob-handle'}
-        onPointerDown={onBobDown}
+        cx={angleHandle.x}
+        cy={angleHandle.y}
+        r={ANGLE_HANDLE_RADIUS}
+        className={handleClass('angle', 'angle-handle')}
+        onPointerDown={onAngleDown}
       >
-        <title>Drag to set the length and initial angle</title>
+        <title>Drag around the hinge to set the initial angle</title>
       </circle>
+      <rect
+        x={lengthHandle.x - LENGTH_HANDLE_SIZE / 2}
+        y={lengthHandle.y - LENGTH_HANDLE_SIZE / 2}
+        width={LENGTH_HANDLE_SIZE}
+        height={LENGTH_HANDLE_SIZE}
+        className={handleClass('length', 'length-handle')}
+        onPointerDown={onLengthDown}
+      >
+        <title>Drag along the string to set its length</title>
+      </rect>
+      <circle cx={bob.x} cy={bob.y} r={radius} className="draft-bob" />
+      <rect
+        x={massHandle.x - MASS_HANDLE_SIZE / 2}
+        y={massHandle.y - MASS_HANDLE_SIZE / 2}
+        width={MASS_HANDLE_SIZE}
+        height={MASS_HANDLE_SIZE}
+        className={handleClass('mass', 'mass-handle')}
+        onPointerDown={onMassDown}
+      >
+        <title>Drag away from the bob to set its mass</title>
+      </rect>
     </g>
   )
 }
