@@ -23,8 +23,19 @@ const MASS_HANDLE_SIZE = 8
 // Where the angle and length handles sit along the rod, as a fraction of its length.
 const ANGLE_HANDLE_FRACTION = 0.3
 const LENGTH_HANDLE_FRACTION = 0.85
+const TOOLTIP_FONT_SIZE = 7
+const TOOLTIP_PADDING_X = 4
+const TOOLTIP_PADDING_Y = 3
+const TOOLTIP_GAP = 6 // space between a handle and its tooltip
 
 type DragPart = 'hinge' | 'length' | 'angle' | 'mass'
+
+const HANDLE_LABELS: Record<DragPart, string> = {
+  hinge: 'Anchor position',
+  angle: 'Initial angle',
+  length: 'String length',
+  mass: 'Mass (fixed density)',
+}
 
 interface Props {
   nodes: NodeInfo[]
@@ -254,6 +265,9 @@ function DraftPendulum({
   onAngleDown,
   onMassDown,
 }: DraftPendulumProps) {
+  const [hovered, setHovered] = useState<DragPart>()
+  const active = dragging ?? hovered
+
   const unit = rodUnit(config.angle)
   const bob = bobPosition(config.x, config.length, (config.angle * Math.PI) / 180)
   const radius = bobRadius(config.mass)
@@ -267,9 +281,19 @@ function DraftPendulum({
   }
   // The far edge of the bob, away from the hinge, so it reads as a resize grip on the circle.
   const massHandle = { x: bob.x + unit.x * radius, y: bob.y + unit.y * radius }
+  const handlePositions: Record<DragPart, Point> = {
+    hinge: { x: config.x, y: HINGE_Y },
+    angle: angleHandle,
+    length: lengthHandle,
+    mass: massHandle,
+  }
 
   const handleClass = (part: DragPart, extra: string) =>
     dragging === part ? `handle ${extra} active` : `handle ${extra}`
+  const hoverProps = (part: DragPart) => ({
+    onPointerEnter: () => setHovered(part),
+    onPointerLeave: () => setHovered((current) => (current === part ? undefined : current)),
+  })
 
   return (
     <g className="draft">
@@ -280,29 +304,29 @@ function DraftPendulum({
         width={HINGE_HANDLE_SIZE}
         height={HINGE_HANDLE_SIZE}
         className={handleClass('hinge', 'hinge-handle')}
+        aria-label={HANDLE_LABELS.hinge}
         onPointerDown={onHingeDown}
-      >
-        <title>Drag left or right to move the hinge</title>
-      </rect>
+        {...hoverProps('hinge')}
+      />
       <circle
         cx={angleHandle.x}
         cy={angleHandle.y}
         r={ANGLE_HANDLE_RADIUS}
         className={handleClass('angle', 'angle-handle')}
+        aria-label={HANDLE_LABELS.angle}
         onPointerDown={onAngleDown}
-      >
-        <title>Drag around the hinge to set the initial angle</title>
-      </circle>
+        {...hoverProps('angle')}
+      />
       <rect
         x={lengthHandle.x - LENGTH_HANDLE_SIZE / 2}
         y={lengthHandle.y - LENGTH_HANDLE_SIZE / 2}
         width={LENGTH_HANDLE_SIZE}
         height={LENGTH_HANDLE_SIZE}
         className={handleClass('length', 'length-handle')}
+        aria-label={HANDLE_LABELS.length}
         onPointerDown={onLengthDown}
-      >
-        <title>Drag along the string to set its length</title>
-      </rect>
+        {...hoverProps('length')}
+      />
       <circle cx={bob.x} cy={bob.y} r={radius} className="draft-bob" />
       <rect
         x={massHandle.x - MASS_HANDLE_SIZE / 2}
@@ -310,10 +334,25 @@ function DraftPendulum({
         width={MASS_HANDLE_SIZE}
         height={MASS_HANDLE_SIZE}
         className={handleClass('mass', 'mass-handle')}
+        aria-label={HANDLE_LABELS.mass}
         onPointerDown={onMassDown}
-      >
-        <title>Drag away from the bob to set its mass</title>
-      </rect>
+        {...hoverProps('mass')}
+      />
+      {active && <HandleTooltip {...handlePositions[active]} text={HANDLE_LABELS[active]} />}
+    </g>
+  )
+}
+
+/** A small always-instant label near a handle, in place of a browser title's hover delay. */
+function HandleTooltip({ x, y, text }: Point & { text: string }) {
+  const width = text.length * TOOLTIP_FONT_SIZE * 0.62 + TOOLTIP_PADDING_X * 2
+  const height = TOOLTIP_FONT_SIZE + TOOLTIP_PADDING_Y * 2
+  return (
+    <g className="handle-tooltip" transform={`translate(${x - width / 2}, ${y - height - TOOLTIP_GAP})`}>
+      <rect width={width} height={height} rx={3} />
+      <text x={width / 2} y={height / 2} fontSize={TOOLTIP_FONT_SIZE}>
+        {text}
+      </text>
     </g>
   )
 }

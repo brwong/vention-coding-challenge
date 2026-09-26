@@ -251,10 +251,32 @@ button.selected {
 
 .pendulum-canvas .angle-handle {
   fill-opacity: 0.35;
+  /* CSS has no built-in rotate cursor, so use an inline curved-arrow icon; the circle backing
+     keeps it visible over both light and dark canvas backgrounds. */
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Ccircle cx='11' cy='11' r='10' fill='white' fill-opacity='.9' stroke='%23334155'/%3E%3Cpath d='M11 5a6 6 0 1 1-4.24 1.76' fill='none' stroke='%23334155' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M5 5v3.5h3.5' fill='none' stroke='%23334155' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      11 11,
+    grab;
 }
 
 .pendulum-canvas .mass-handle {
   cursor: nwse-resize;
+}
+
+.pendulum-canvas .handle-tooltip {
+  pointer-events: none;
+}
+
+.pendulum-canvas .handle-tooltip rect {
+  fill: var(--fg);
+  fill-opacity: 0.85;
+}
+
+.pendulum-canvas .handle-tooltip text {
+  fill: var(--bg);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-weight: 600;
 }
 
 .pendulum-canvas .handle:hover,
