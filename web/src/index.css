@@ -107,13 +107,6 @@ main {
   font-weight: 600;
 }
 
-.node-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
 button {
   font: inherit;
   color: inherit;
@@ -127,11 +120,6 @@ button {
 button:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-button.selected {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .node-list {

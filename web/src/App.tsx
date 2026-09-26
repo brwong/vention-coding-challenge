@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NodeConfigForm } from './components/NodeConfigForm'
 import { NodeList } from './components/NodeList'
-import { NodeSelector } from './components/NodeSelector'
 import { PendulumCanvas } from './components/PendulumCanvas'
 import { type ConfigDraft, pruneDraft, resolveDraft } from './configDraft'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
@@ -222,7 +221,6 @@ function App() {
             onSelect={setSelectedNodeId}
           />
           <aside>
-            <NodeSelector nodes={nodes} selectedNodeId={selected} onSelect={setSelectedNodeId} />
             <NodeList
               nodes={nodes}
               statuses={statuses}
