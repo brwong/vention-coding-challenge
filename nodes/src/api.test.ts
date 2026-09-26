@@ -179,6 +179,18 @@ describe("lifecycle commands", () => {
     expect(simulation.state.angle).toBe(createPendulum(20).angle);
   });
 
+  it("POST /reset swings back to the initial angle and stays ready", async () => {
+    simulation.start();
+    for (let i = 0; i < 10; i++) simulation.tick();
+
+    const res = await request(app).post("/reset").expect(200);
+    expect(res.body).toEqual({ lifecycle: "ready" });
+    const status = await request(app).get("/status");
+    expect(status.body.lifecycle).toBe("ready");
+    expect(status.body.state.angle).toBe(createPendulum(20).angle);
+    expect(status.body.state.running).toBe(false);
+  });
+
   it("returns 404 for unknown endpoints", async () => {
     const res = await request(app).post("/explode").expect(404);
     expect(res.body).toEqual({ error: "Not found" });

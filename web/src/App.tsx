@@ -24,12 +24,14 @@ const COMMAND_VERBS: Record<LifecycleCommand, string> = {
   start: 'started',
   pause: 'paused',
   stop: 'stopped',
+  reset: 'reset',
 }
 
 const GROUP_COMMANDS: { command: LifecycleCommand; label: string }[] = [
   { command: 'start', label: 'Start All' },
   { command: 'pause', label: 'Pause All' },
   { command: 'stop', label: 'Stop All' },
+  { command: 'reset', label: 'Reset All' },
 ]
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
@@ -103,11 +105,13 @@ function App() {
     if (anyPlaying) setConfigVisible(false)
   }, [statuses])
 
-  // Restarting is the existing simulation reset operation; each node clears its
-  // own wind there, so the UI's displayed wind state must follow (docs/bonus-wind.md).
+  // Restarting and reset both reset the pendulum position and clear wind on the
+  // node, so the UI's displayed wind state must follow (docs/bonus-wind.md).
   useEffect(() => {
-    const anyRestarting = [...statuses.values()].some((status) => status.lifecycle === 'restarting')
-    if (anyRestarting) {
+    const anyReset = [...statuses.values()].some(
+      (status) => status.lifecycle === 'restarting' || status.lifecycle === 'ready',
+    )
+    if (anyReset) {
       setWindDraft(OFF_WIND_DRAFT)
       setWindSaved(OFF_WIND_DRAFT)
     }

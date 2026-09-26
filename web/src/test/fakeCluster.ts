@@ -61,9 +61,9 @@ export function mockCluster(nodes: FakeNode[]) {
     if (method === 'POST') {
       const command = route.slice(1)
       if (node.failing?.has(command)) return json({ error: 'Internal server error' }, 500)
-      node.lifecycle = ({ start: 'running', pause: 'paused', stop: 'stopped' } as const)[
-        command as 'start' | 'pause' | 'stop'
-      ]
+      node.lifecycle = (
+        { start: 'running', pause: 'paused', stop: 'stopped', reset: 'ready' } as const
+      )[command as 'start' | 'pause' | 'stop' | 'reset']
       return json({ lifecycle: node.lifecycle })
     }
     if (method === 'PUT' && route === '/wind') {

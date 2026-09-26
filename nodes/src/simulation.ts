@@ -81,6 +81,16 @@ export class Simulation {
     this._lifecycle = "stopped";
   }
 
+  /**
+   * Moves the pendulum back to its initial angle and holds it there, ready to
+   * start, without the auto-resume that follows a collision RESTART.
+   */
+  reset(): void {
+    this._state = createPendulum(this._config.angle);
+    this._wind = NO_WIND;
+    this._lifecycle = "ready";
+  }
+
   /** Advances one fixed timestep, but only while running. */
   tick(): void {
     if (this._lifecycle !== "running") return;

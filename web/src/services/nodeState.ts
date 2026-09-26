@@ -130,7 +130,7 @@ export function pollProtocolStates(
   )
 }
 
-export type LifecycleCommand = 'start' | 'pause' | 'stop'
+export type LifecycleCommand = 'start' | 'pause' | 'stop' | 'reset'
 
 export async function sendCommand(port: number, command: LifecycleCommand): Promise<void> {
   const response = await fetch(nodeUrl(port, `/${command}`), {

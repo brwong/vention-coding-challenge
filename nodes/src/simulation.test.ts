@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createPendulum } from "./physics";
 import type { WindOn } from "./wind";
 import { Simulation } from "./simulation";
 
@@ -67,5 +68,31 @@ describe("Simulation wind", () => {
     simulation.beginRestart();
     expect(simulation.wind).toEqual({ enabled: false });
     expect(simulation.lifecycle).toBe("restarting");
+  });
+});
+
+describe("Simulation reset", () => {
+  it("swings back to the initial angle, disables wind, and becomes ready without auto-resuming", () => {
+    const simulation = new Simulation(CONFIG);
+    simulation.setWind(WIND);
+    simulation.start();
+    for (let i = 0; i < 10; i++) simulation.tick();
+    expect(simulation.state.angle).not.toBe(createPendulum(CONFIG.angle).angle);
+
+    simulation.reset();
+
+    expect(simulation.state).toEqual(createPendulum(CONFIG.angle));
+    expect(simulation.wind).toEqual({ enabled: false });
+    expect(simulation.lifecycle).toBe("ready");
+    simulation.tick();
+    expect(simulation.state).toEqual(createPendulum(CONFIG.angle)); // still not running
+  });
+
+  it("start() from ready does not re-reset an already-initial pendulum", () => {
+    const simulation = new Simulation(CONFIG);
+    simulation.reset();
+    simulation.start();
+    expect(simulation.lifecycle).toBe("running");
+    expect(simulation.state).toEqual(createPendulum(CONFIG.angle));
   });
 });

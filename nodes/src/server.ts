@@ -106,6 +106,7 @@ export function createApp(
     start: () => simulation.start(),
     pause: () => simulation.pause(),
     stop: () => simulation.stop(),
+    reset: () => simulation.reset(),
   };
   for (const [name, command] of Object.entries(lifecycleCommands)) {
     app.post(`/${name}`, (_req, res) => {

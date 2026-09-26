@@ -63,6 +63,17 @@ describe('App', () => {
     ])
   })
 
+  it('sends Reset All to every node and reports success', async () => {
+    const { fetchMock, byPort } = threeNodes()
+    render(<App />)
+    await listedNodeIds()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reset All' }))
+    expect(await screen.findByText('3/3 nodes reset')).toBeInTheDocument()
+    expect(callsTo(fetchMock, 'POST', '/reset').sort()).toEqual(['7700', '7701', '7702'])
+    expect([...byPort.values()].map((node) => node.lifecycle)).toEqual(['ready', 'ready', 'ready'])
+  })
+
   it('reports a partial failure when one node rejects a group command', async () => {
     const { byPort } = threeNodes()
     byPort.get(7701)!.failing = new Set(['start'])
