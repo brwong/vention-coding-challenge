@@ -19,8 +19,7 @@ interface Node {
 
 interface ProtocolStatus {
   nodeId: string;
-  term: number;
-  leader: string | null;
+  epoch: number;
   lifecycle: string;
   stoppedBy: string | null;
   peers: { nodeId: string; suspected: boolean }[];
@@ -103,17 +102,43 @@ async function eventually<T>(check: () => Promise<T>, timeoutMs: number): Promis
   }
 }
 
-/** Waits until every node agrees on one live leader, and returns it. */
-async function agreedLeader(cluster: Node[], timeoutMs: number): Promise<string> {
-  return eventually(async () => {
-    const statuses = await Promise.all(cluster.map(protocolStatus));
-    const leaders = new Set(statuses.map((status) => status.leader));
-    expect(leaders.size).toBe(1);
-    const [leader] = leaders;
-    expect(cluster.map((node) => node.nodeId)).toContain(leader);
-    return leader!;
+/** Waits until every node in `cluster` knows every other one. */
+async function fullyConnected(cluster: Node[], timeoutMs = 3000): Promise<void> {
+  await eventually(async () => {
+    for (const node of cluster) expect(await peerIds(node)).toHaveLength(cluster.length - 1);
   }, timeoutMs);
 }
+
+type Lifecycles = Map<string, Map<string, number>>;
+
+/**
+ * Polls `cluster` until every node has stopped, restarted and is running
+ * again (or `timeoutMs` passes), and returns when each node was first seen in
+ * each lifecycle.
+ */
+async function watchStopAndRestart(cluster: Node[], timeoutMs: number): Promise<Lifecycles> {
+  const seen: Lifecycles = new Map(cluster.map((n) => [n.nodeId, new Map()]));
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const statuses = await Promise.all(cluster.map(protocolStatus));
+    statuses.forEach((status, i) => {
+      const times = seen.get(cluster[i].nodeId)!;
+      const state = status.lifecycle;
+      if (!times.has(state) && (state !== "running" || times.has("restarting"))) {
+        times.set(state, Date.now());
+      }
+    });
+    if (cluster.every((node) => seen.get(node.nodeId)!.has("running"))) break;
+    await sleep(25);
+  }
+  return seen;
+}
+
+/** Nodes set 60 apart swinging toward each other, which collide about 0.8 s after starting. */
+const COLLIDING_PAIR = [
+  ["--x", "0", "--angle", "-20"],
+  ["--x", "60", "--angle", "20"],
+];
 
 async function startCluster(size: number): Promise<Node[]> {
   const cluster: Node[] = [];
@@ -153,55 +178,17 @@ describe("multi-node coordination", { timeout: 30_000 }, () => {
     expect(status.config.x).toBe(200); // spaced by join order
   });
 
-  it("elects one leader and elects another when it dies", async () => {
-    const cluster = await startCluster(5);
-    const leader = await agreedLeader(cluster, 6000);
-
-    await killNode(cluster.find((node) => node.nodeId === leader)!);
-    const survivors = cluster.filter((node) => node.nodeId !== leader);
-    const next = await agreedLeader(survivors, 8000);
-    expect(next).not.toBe(leader);
-    // The survivors all moved to a newer term.
-    const terms = await Promise.all(survivors.map(async (node) => (await protocolStatus(node)).term));
-    expect(new Set(terms).size).toBe(1);
-  });
-
   it("stops every node on a collision and restarts them together 5 seconds later", async () => {
-    // A and B swing toward each other from 60 apart and collide about 0.8 s
-    // after starting; C is far away but must stop and restart with them.
-    const a = await startNode(["--x", "0", "--angle", "-20"]);
-    const b = await startNode(["--x", "60", "--angle", "20"]);
+    // A and B collide; C is far away but must stop and restart with them.
+    const a = await startNode(COLLIDING_PAIR[0]);
+    const b = await startNode(COLLIDING_PAIR[1]);
     const c = await startNode(["--x", "400"]);
     const cluster = [a, b, c];
-    await agreedLeader(cluster, 6000);
-    await eventually(async () => {
-      for (const node of cluster) expect(await peerIds(node)).toHaveLength(2);
-    }, 3000);
+    await fullyConnected(cluster);
 
     await Promise.all(cluster.map((node) => post(node, "/start")));
-
-    // Record when each node is first seen in each lifecycle, and who each
-    // node blames for the stop the first time it sees "stopped".
-    const seen = new Map<string, Map<string, number>>(cluster.map((n) => [n.nodeId, new Map()]));
+    const seen = await watchStopAndRestart(cluster, 12_000);
     const firstSeen = (node: Node, state: string) => seen.get(node.nodeId)!.get(state);
-    const stoppedBy = new Map<string, string | null>();
-    const start = Date.now();
-    while (Date.now() - start < 12_000) {
-      const statuses = await Promise.all(cluster.map(protocolStatus));
-      statuses.forEach((status, i) => {
-        const node = cluster[i];
-        const times = seen.get(node.nodeId)!;
-        const state = status.lifecycle;
-        if (!times.has(state) && (state !== "running" || times.has("restarting"))) {
-          times.set(state, Date.now());
-        }
-        if (state === "stopped" && !stoppedBy.has(node.nodeId)) {
-          stoppedBy.set(node.nodeId, status.stoppedBy);
-        }
-      });
-      if (cluster.every((node) => firstSeen(node, "running") !== undefined)) break;
-      await sleep(25);
-    }
 
     const spread = (state: string) => {
       const times = cluster.map((node) => firstSeen(node, state));
@@ -216,16 +203,39 @@ describe("multi-node coordination", { timeout: 30_000 }, () => {
     expect(countdown).toBeGreaterThan(4500);
     expect(countdown).toBeLessThan(5500);
 
-    // Every node agrees on who reported the collision, and it's whichever of
-    // a or b noticed first, not c, which was never involved.
-    const reporters = new Set(cluster.map((node) => stoppedBy.get(node.nodeId)));
+    // Both a and b may detect the collision, but their STOPs merge: every
+    // node ends up in the same epoch and blames the same node, and never c,
+    // which was not involved.
+    const statuses = await Promise.all(cluster.map(protocolStatus));
+    expect(new Set(statuses.map((status) => status.epoch))).toEqual(new Set([1]));
+    const reporters = new Set(statuses.map((status) => status.stoppedBy));
     expect(reporters.size).toBe(1);
     expect([a.nodeId, b.nodeId]).toContain([...reporters][0]);
   });
 
+  it("stops the cluster straight after a node dies, with nothing to wait for", async () => {
+    // D has the highest ID, so under a leader it would have been the leader.
+    const a = await startNode(COLLIDING_PAIR[0]);
+    const b = await startNode(COLLIDING_PAIR[1]);
+    const c = await startNode(["--x", "400"]);
+    const d = await startNode(["--x", "600"]);
+    await fullyConnected([a, b, c, d]);
+    await killNode(d);
+
+    // The collision comes well before D is even suspected dead.
+    const cluster = [a, b, c];
+    await Promise.all(cluster.map((node) => post(node, "/start")));
+    const seen = await watchStopAndRestart(cluster, 20_000);
+    for (const node of cluster) {
+      const times = seen.get(node.nodeId)!;
+      expect(times.has("stopped"), `${node.nodeId} stopped`).toBe(true);
+      expect(times.has("running"), `${node.nodeId} running again`).toBe(true);
+    }
+  });
+
   it("keeps running when a node dies, and takes it back when it restarts", async () => {
     const cluster = await startCluster(5);
-    await agreedLeader(cluster, 6000);
+    await fullyConnected(cluster);
     await Promise.all(cluster.map((node) => post(node, "/start")));
 
     const middle = cluster[2];

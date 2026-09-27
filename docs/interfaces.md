@@ -54,7 +54,7 @@ Supported flags:
 - Render the pendulums with SVG. Use SVG coordinates consistently with the node state and scale the viewport as needed.
 - Provide a simulation view rendering every discovered pendulum.
 - Provide group controls for `Start`, `Pause`, and `Stop`.
-- Provide a group `Reset` control that swings every node back to its configured initial angle and leaves it ready to start, without starting it. This is a direct per-node command like `Start`/`Pause`/`Stop`; it does not involve the leader/term-based STOP/RESTART protocol.
+- Provide a group `Reset` control that swings every node back to its configured initial angle and leaves it ready to start, without starting it. This is a direct per-node command like `Start`/`Pause`/`Stop`; it does not involve the epoch-based STOP/RESTART protocol.
 - Provide per-node configuration controls for hinge x-position, length, mass, and initial angle.
 - Direct manipulation of the selected pendulum should be supported: drag the hinge horizontally to change x-position; drag the bob to change length and angle.
 - Provide numeric inputs and/or sliders alongside dragging, so values can be set precisely and the controls remain usable without a mouse.

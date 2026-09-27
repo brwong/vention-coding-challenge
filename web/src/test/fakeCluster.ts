@@ -25,12 +25,10 @@ export function statusFor(node: FakeNode): PendulumStatus {
   }
 }
 
-function protocolFor(node: FakeNode, leaderPort: number): ProtocolStatus {
+function protocolFor(node: FakeNode): ProtocolStatus {
   return {
     nodeId: `node-${node.port}`,
-    term: 1,
-    leader: `node-${leaderPort}`,
-    isLeader: node.port === leaderPort,
+    epoch: 0,
     lifecycle: node.lifecycle,
     restartBarrier: [],
     awaitingRestart: false,
@@ -48,7 +46,6 @@ const json = (body: unknown, status = 200) =>
  */
 export function mockCluster(nodes: FakeNode[]) {
   const byPort = new Map(nodes.map((node) => [node.port, node]))
-  const leaderPort = Math.max(...byPort.keys())
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input))
     const node = byPort.get(Number(url.port))
@@ -57,7 +54,7 @@ export function mockCluster(nodes: FakeNode[]) {
     const route = url.pathname
 
     if (method === 'GET' && route === '/status') return json(statusFor(node))
-    if (method === 'GET' && route === '/protocol-status') return json(protocolFor(node, leaderPort))
+    if (method === 'GET' && route === '/protocol-status') return json(protocolFor(node))
     if (method === 'POST') {
       const command = route.slice(1)
       if (node.failing?.has(command)) return json({ error: 'Internal server error' }, 500)

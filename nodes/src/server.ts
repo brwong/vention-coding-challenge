@@ -1,7 +1,6 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import { ConfigError, parseConfigUpdate } from "./config";
-import type { ElectionService } from "./services/electionService";
 import type { MembershipService } from "./services/membershipService";
 import type { PositionService } from "./services/positionService";
 import type { ProtocolService } from "./services/protocolService";
@@ -16,7 +15,6 @@ export interface NodeIdentity {
 
 export interface Services {
   membership: MembershipService;
-  election: ElectionService;
   position: PositionService;
   protocol: ProtocolService;
 }
@@ -41,18 +39,11 @@ async function routeMessage(message: Message, services: Services): Promise<objec
       services.position.forget(message.nodeId);
       return services.membership.handleJoin(message);
     case "HEARTBEAT":
-      services.election.handleHeartbeat(message);
-      break;
-    case "ELECTION_REQUEST":
-      return services.election.handleElectionRequest(message);
-    case "ELECTION_RESPONSE":
-      services.election.handleElectionResponse(message);
+      services.protocol.handleHeartbeat(message);
       break;
     case "POSITION":
       services.position.handlePosition(message);
       break;
-    case "COLLISION_DETECTED":
-      return services.protocol.handleCollisionDetected(message);
     case "STOP":
       services.protocol.handleStop(message);
       break;
@@ -136,14 +127,13 @@ export function createApp(
   });
 
   app.get("/protocol-status", (_req, res) => {
-    const { membership, election, position, protocol } = services;
-    const { lifecycle, restartBarrier, awaitingRestart, quorumSize, stoppedBy } = protocol.state;
+    const { membership, position, protocol } = services;
+    const { epoch, lifecycle, restartBarrier, awaitingRestart, quorumSize, stoppedBy } =
+      protocol.state;
     const now = Date.now();
     res.json({
       nodeId: identity.nodeId,
-      term: election.currentTerm,
-      leader: election.leaderId,
-      isLeader: election.isLeader,
+      epoch,
       lifecycle,
       restartBarrier: [...restartBarrier],
       awaitingRestart,

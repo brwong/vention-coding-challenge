@@ -51,7 +51,6 @@ export function LifecycleIndicator({ status, protocol, unreachable }: Props) {
       <span className="lifecycle-main">
         <span className="lifecycle-dot" style={{ background: color }} aria-hidden="true" />
         <span style={{ color }}>{status.lifecycle}</span>
-        {protocol?.isLeader && <span className="badge">leader</span>}
         {reportedCollision && <span className="badge badge-alert">collision</span>}
       </span>
       <span className="lifecycle-detail">{detail ?? <>&nbsp;</>}</span>

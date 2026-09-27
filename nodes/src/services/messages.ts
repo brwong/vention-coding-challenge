@@ -33,21 +33,7 @@ export interface JoinResponse {
 export interface HeartbeatMessage {
   type: "HEARTBEAT";
   nodeId: string;
-  term: number;
-  isLeader: boolean;
-}
-
-export interface ElectionRequest {
-  type: "ELECTION_REQUEST";
-  nodeId: string;
-  term: number;
-}
-
-export interface ElectionResponse {
-  type: "ELECTION_RESPONSE";
-  nodeId: string;
-  term: number;
-  voteFor: string | null;
+  epoch: number; // newest stop epoch the sender knows of
 }
 
 export interface PositionMessage {
@@ -57,48 +43,36 @@ export interface PositionMessage {
   seq: number; // per-node, monotonically increasing
 }
 
-export interface CollisionDetectedMessage {
-  type: "COLLISION_DETECTED";
-  nodeId: string;
-  term: number;
-}
-
 export interface StopMessage {
   type: "STOP";
-  term: number;
+  epoch: number;
   from: string;
-  reporter: string; // node whose collision report caused this STOP
+  reporter: string; // node that detected the collision; the same as `from`
 }
 
 export interface RestartMessage {
   type: "RESTART";
-  term: number;
+  epoch: number;
   from: string;
 }
 
 export type Message =
   | JoinMessage
   | HeartbeatMessage
-  | ElectionRequest
-  | ElectionResponse
   | PositionMessage
-  | CollisionDetectedMessage
   | StopMessage
   | RestartMessage;
 
 export type MessageType = Message["type"];
 
-type FieldKind = "string" | "number" | "boolean" | "config";
+type FieldKind = "string" | "number" | "config";
 
 const MESSAGE_FIELDS: Record<MessageType, Record<string, FieldKind>> = {
   JOIN: { nodeId: "string", port: "number", config: "config" },
-  HEARTBEAT: { nodeId: "string", term: "number", isLeader: "boolean" },
-  ELECTION_REQUEST: { nodeId: "string", term: "number" },
-  ELECTION_RESPONSE: { nodeId: "string", term: "number" },
+  HEARTBEAT: { nodeId: "string", epoch: "number" },
   POSITION: { pendulumId: "string", angle: "number", seq: "number" },
-  COLLISION_DETECTED: { nodeId: "string", term: "number" },
-  STOP: { term: "number", from: "string", reporter: "string" },
-  RESTART: { term: "number", from: "string" },
+  STOP: { epoch: "number", from: "string", reporter: "string" },
+  RESTART: { epoch: "number", from: "string" },
 };
 
 export const MESSAGE_TYPES = Object.keys(MESSAGE_FIELDS) as MessageType[];

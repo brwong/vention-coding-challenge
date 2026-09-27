@@ -1,7 +1,7 @@
 ---
 title: Coordination Strategy for Distributed Pendulum
-scope: STOP/RESTART coordination, leader election, message ordering, time/clock model, membership discovery
-when_to_use: When implementing the distributed coordination layer (leader/lease/election, STOP/RESTART, position sharing, node discovery)
+scope: Leaderless STOP/RESTART coordination, stop epochs, message ordering, time/clock model, membership discovery
+when_to_use: When implementing the distributed coordination layer (STOP/RESTART, stop epochs, position sharing, node discovery)
 audience: Coding LLM or developer implementing server-side logic
 ---
 
@@ -10,7 +10,7 @@ audience: Coding LLM or developer implementing server-side logic
 This document defines the coordination strategy for the distributed pendulum simulation. It covers:
 
 - Membership discovery (dynamic node join/leave)
-- Coordination model (leader/lease/election)
+- Coordination model (leaderless, epoch-numbered stops)
 - Message types, states, and flows
 - Time and clock assumptions
 - What to implement and what not to implement
@@ -57,28 +57,25 @@ The goal is a simple, robust design that handles basic failures and supports a d
 
 ### Strategy
 
-- Use **leader/lease/election** for STOP/RESTART decisions.
-- Position sharing and collision detection remain **fully peer-to-peer** and independent of the leader.
+- **Leaderless.** Every node plays the same role; there is no leader, lease or election.
+- The node that detects a collision broadcasts `STOP` to all instances itself, and every node that stops broadcasts its own `RESTART` and waits for `RESTART` from all the others. This follows the spec's wording directly.
+- Position sharing, collision detection and membership are peer-to-peer as well.
 
-### Roles
+### Stop Epochs
 
-- **Leader**:
-  - Sole authority to broadcast `STOP` and `RESTART` messages.
-  - Maintains a monotonically increasing `term` counter.
-  - Sends periodic heartbeats to maintain its lease and support membership liveness.
-- **Followers**:
-  - Detect collisions locally and notify the leader.
-  - Obey `STOP`/`RESTART` commands for the current term.
-  - Participate in leader election if the leader is considered dead.
+- Each stop is numbered by an **epoch**: a counter every node keeps, holding the newest epoch it has seen in any `STOP`, `RESTART` or `HEARTBEAT`.
+- A node that detects a collision uses **its newest known epoch + 1** for the new stop.
+- Heartbeats carry the sender's epoch, so a node that joined late or missed a stop catches up within one heartbeat interval and picks an epoch the others will obey.
+- Both bobs in a collision usually detect it on the same tick. Both nodes then pick the same epoch, and receivers treat the second `STOP` for an epoch they already obeyed as a repeat, so the two reports merge into one stop.
+- Each `STOP` names its `reporter`. When several reporters send a `STOP` for the same epoch, every node keeps the **lowest node ID**, so all nodes agree on who caused the stop.
+- Node IDs are derived from the port (`node-7700`, `node-7701`, …) and ordered by port number.
 
-### Leader Election
+### Why No Leader
 
-- Implement a minimal election mechanism:
-  - Each node has a stable ID (e.g., derived from port: `node-0` for 7700, `node-1` for 7701, etc.).
-  - If a follower does not receive a heartbeat from the leader within a timeout, it starts an election.
-  - Elections use a `term` number; higher term wins.
-  - Among nodes in the same term, **higher node ID wins** (simple deterministic tie-breaker).
-- Only one leader per term (avoid split-brain via term comparison).
+- On a single host there are no network partitions, so a leader's majority lease protects against a scenario that cannot occur here, while an election leaves a window (the election timeout, about 2 seconds) in which no collision can be acted on.
+- STOP reaches peers in one hop instead of two (detector → leader → all).
+- Every node is identical, which keeps the code and tests small.
+- Trade-off: nothing prevents a node with a stale view from stopping the others. On a multi-host network that can split, a leader (or quorum) would be worth reconsidering.
 
 ## Position Sharing and Collision Detection
 
@@ -106,8 +103,8 @@ The goal is a simple, robust design that handles basic failures and supports a d
   - On each local tick, checks for collisions between:
     - Its current position, and
     - The latest cached positions of its neighbors (as defined by configuration or topology).
-- If a collision is detected:
-  - Send a `COLLISION_DETECTED` message to the current leader (do not broadcast STOP directly).
+- If a collision is detected while the local pendulum is running:
+  - Broadcast `STOP` with a new epoch to all known peers and stop locally (see below). Stopping ends collision checks until the restart, so one collision is reported once per node.
 
 ### What NOT to Implement
 
@@ -133,37 +130,39 @@ Each node maintains a local state machine:
 
 Transitions:
 
-- `running` → `stopping` → `stopped` on valid `STOP` (higher `term`).
-- `stopped` → `restarting` when RESTART barrier is satisfied for current `term`.
-- `restarting` → `running` after 5-second timer expires.
+- `running` → `stopped` on a local collision, or on a `STOP` (or `RESTART`) for a newer epoch.
+- `stopped` → `restarting` when the RESTART barrier is satisfied for the current epoch.
+- `restarting` → `running` after the 5-second timer expires.
 
-All transitions are gated by `term`: ignore messages with `term` ≤ current known term.
+All transitions are gated by epoch: messages for an epoch older than the newest known one are ignored.
 
 ### STOP
 
-1. Follower detects collision → sends `COLLISION_DETECTED` to leader.
-2. Leader (if still holding lease):
-   - Increments `term`.
-   - Broadcasts `STOP` with new `term` to all known peers.
-3. All nodes:
-   - Ignore `STOP` with `term` ≤ current known term.
-   - On higher `term`, transition to `stopped` (optionally via `stopping`).
+1. A node detects a collision:
+   - Picks `epoch = newest known epoch + 1`.
+   - Broadcasts `STOP` with that epoch to all known peers, naming itself as `reporter`.
+   - Stops locally and continues with RESTART below.
+2. Every node receiving `STOP`:
+   - Ignores it if its epoch is older than the newest known epoch.
+   - If it has already stopped for this epoch, treats it as another report of the same stop (keeping the lowest-ID reporter).
+   - Otherwise stops, adopts the epoch, and continues with RESTART below.
 
 ### RESTART
 
-1. After stopping, leader:
-   - Broadcasts `RESTART` with current `term`.
-2. Each node:
-   - Waits until it has received `RESTART` from a **quorum** of nodes (e.g., 4 out of current cluster size, or all if cluster is small and healthy) for the current `term`.
-   - Then starts a 5-second local timer.
-   - After timer expires, transitions to `running`.
+1. Every node, once it has stopped for an epoch:
+   - Holds still for a short pause (500 ms), so the collision stays visible; without it the barrier would complete within milliseconds and reset the pendulums before anyone could see where they stopped.
+   - Then adds itself to the RESTART barrier and broadcasts `RESTART` with that epoch to all known peers, once.
+2. Every node receiving `RESTART`:
+   - If the epoch is newer than its last stop, the RESTART overtook its STOP: it stops first (and later sends its own RESTART) as if the STOP had arrived.
+   - Adds the sender to its barrier for that epoch.
+3. When the barrier holds RESTART from **every live node** (all peers not suspected dead, plus itself), the node resets its pendulum to its initial angle, starts a 5-second local timer, and transitions to `running` when it expires.
 
 ### Failure Handling
 
 - Add timeouts for the RESTART barrier:
-  - If a node has not received enough `RESTART` messages within a configured timeout (e.g., 10s), it proceeds with the quorum it has.
+  - If a node has not received enough `RESTART` messages within a configured timeout (e.g., 10s), it proceeds with the RESTARTs it has. A node that dies during a stop therefore delays the restart by at most this timeout; one already suspected dead (silent for 2s) is not waited for at all.
 - Ensure messages are **idempotent**:
-  - Receiving duplicate `STOP`/`RESTART` for the same term does not break state.
+  - Receiving duplicate `STOP`/`RESTART` for the same epoch does not break state.
 
 ## Time and Clock Model
 
@@ -172,14 +171,14 @@ All transitions are gated by `term`: ignore messages with `term` ≤ current kno
 - Each node maintains:
   - A local simulation tick counter (for physics).
   - A per-node `seq` counter for POSITION messages.
-  - A shared `term` counter for coordination messages (leader-driven).
+  - An `epoch` counter numbering collision stops, kept in step through STOP, RESTART and heartbeats.
 - No synchronized wall-clock time is required or assumed.
 
 ### Ordering Guarantees
 
 - Per-node POSITION messages are ordered by `seq`.
-- Coordination messages (`STOP`, `RESTART`, heartbeats, election, JOIN) are ordered by `term` (and optionally a per-term sequence).
-- Nodes ignore messages with older `seq` or `term` than what they have already processed.
+- Coordination messages (`STOP`, `RESTART`) are ordered by `epoch`.
+- Nodes ignore messages with older `seq` or `epoch` than what they have already processed.
 
 ### No Clock Synchronization
 
@@ -187,7 +186,7 @@ All transitions are gated by `term`: ignore messages with `term` ≤ current kno
 - Do **not** compare tick values across nodes to infer "same time".
 - Use only:
   - Local timers for timeouts and leases.
-  - Logical counters (`seq`, `term`) for ordering.
+  - Logical counters (`seq`, `epoch`) for ordering.
 
 **Justification**: The system's correctness depends on event ordering, not absolute time. Logical clocks and timeouts are sufficient and simpler.
 
@@ -227,81 +226,42 @@ Response (from existing node):
 
 #### `HEARTBEAT`
 
-Sent periodically by the leader (and optionally by all nodes for membership liveness).
+Sent periodically by every node to every peer, for membership liveness and to share the newest known epoch.
 
 ```json
 {
   "type": "HEARTBEAT",
-  "nodeId": "node-0",
-  "term": 3,
-  "isLeader": true
+  "nodeId": "node-7700",
+  "epoch": 3
 }
 ```
 
 ### Coordination
 
-#### `COLLISION_DETECTED`
-
-Follower → leader.
-
-```json
-{
-  "type": "COLLISION_DETECTED",
-  "nodeId": "node-2",
-  "term": 3
-}
-```
-
 #### `STOP`
 
-Leader → all.
+The node that detected a collision → all.
 
 ```json
 {
   "type": "STOP",
-  "term": 4,
-  "from": "node-0"
+  "epoch": 4,
+  "from": "node-7702",
+  "reporter": "node-7702"
 }
 ```
 
 #### `RESTART`
 
-Leader → all.
+Every stopped node → all, once per epoch.
 
 ```json
 {
   "type": "RESTART",
-  "term": 4,
-  "from": "node-0"
+  "epoch": 4,
+  "from": "node-7700"
 }
 ```
-
-### Election
-
-#### `ELECTION_REQUEST`
-
-Sent by a node starting an election.
-
-```json
-{
-  "type": "ELECTION_REQUEST",
-  "nodeId": "node-2",
-  "term": 4
-}
-```
-
-Response (from peers):
-
-```json
-{
-  "type": "ELECTION_RESPONSE",
-  "nodeId": "node-1",
-  "term": 4,
-  "voteFor": "node-2"
-}
-```
-
-(Or a simpler variant where responses just acknowledge and the requester decides based on highest ID.)
 
 ### Position
 
@@ -323,11 +283,11 @@ Pushed periodically to all peers.
 ### Implement
 
 - Dynamic membership via port probing + JOIN protocol (single host).
-- Leader/lease/election mechanism for STOP/RESTART.
+- Leaderless STOP/RESTART: the detecting node broadcasts STOP, every stopped node broadcasts RESTART.
 - Push-based position sharing with per-node `seq`.
 - Local collision detection using latest cached positions.
-- STOP/RESTART state machine with term-based filtering and quorum/timer for RESTART barrier.
-- Basic timeouts for liveness (leader failure, RESTART barrier, peer removal).
+- STOP/RESTART state machine with epoch-based filtering and an all-live-nodes RESTART barrier with a timeout.
+- Basic timeouts for liveness (RESTART barrier, peer removal).
 
 ### Do Not Implement
 
@@ -337,5 +297,6 @@ Pushed periodically to all peers.
 - Pull-based position requests.
 - Complex multi-phase commit protocols.
 - Multi-host discovery (CLI `--peers` is documented as a future extension only).
+- Leader election, leases, or any other single coordinator.
 
 **Justification**: Keep the system simple, testable, and appropriate for a small, dynamic cluster on a single host while still demonstrating sound distributed design.

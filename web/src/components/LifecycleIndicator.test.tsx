@@ -16,9 +16,7 @@ function status(lifecycle: PendulumStatus['lifecycle']): PendulumStatus {
 function protocol(overrides: Partial<ProtocolStatus>): ProtocolStatus {
   return {
     nodeId: 'node-7700',
-    term: 1,
-    leader: 'node-7700',
-    isLeader: false,
+    epoch: 1,
     lifecycle: 'stopped',
     restartBarrier: [],
     awaitingRestart: true,

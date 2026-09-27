@@ -2,7 +2,6 @@ import { ConfigError, USAGE, loadConfig } from "./config";
 import { HEARTBEAT_INTERVAL_MS } from "./constants";
 import { createApp } from "./server";
 import { CollisionService } from "./services/collisionService";
-import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
 import { PositionService } from "./services/positionService";
 import { ProtocolService } from "./services/protocolService";
@@ -24,14 +23,13 @@ async function main(): Promise<void> {
     const { x, length, mass } = simulation.config;
     return { x, length, mass };
   });
-  const election = new ElectionService(nodeId, membership);
   const position = new PositionService(nodeId, membership);
-  const protocol = new ProtocolService(nodeId, simulation, membership, election);
+  const protocol = new ProtocolService(nodeId, simulation, membership);
   server.on(
     "request",
-    createApp({ nodeId, port }, simulation, { membership, election, position, protocol }),
+    createApp({ nodeId, port }, simulation, { membership, position, protocol }),
   );
-  const collision = new CollisionService(nodeId, simulation, membership, position, election);
+  const collision = new CollisionService(simulation, membership, position, protocol);
   simulation.startLoop(() => {
     position.broadcastPosition(simulation.state.angle);
     collision.checkCollisions();
@@ -41,16 +39,14 @@ async function main(): Promise<void> {
   const peers = await membership.probeLowerPorts();
   logEvent(`Discovered peers: [${peers.map((peer) => peer.nodeId).join(", ")}]`);
   const stopHeartbeat = membership.startHeartbeat(
-    () => election.heartbeat(),
+    () => protocol.heartbeat(),
     HEARTBEAT_INTERVAL_MS,
   );
-  const stopElectionTimer = election.startElectionTimer();
   const stopStatusLogger = startStatusLogger(nodeId, simulation);
 
   const shutdown = () => {
     logEvent(`Shutting down ${nodeId}`);
     stopHeartbeat();
-    stopElectionTimer();
     protocol.dispose();
     stopStatusLogger();
     simulation.stopLoop();

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ConfigError,
   USAGE,
+  compareNodeIds,
   listenOnAvailablePort,
   loadConfig,
   nodeIdForPort,
@@ -102,7 +103,13 @@ describe("node IDs", () => {
   it("derives the node ID from the port and back", () => {
     expect(nodeIdForPort(7703)).toBe("node-7703");
     expect(portFromNodeId("node-7703")).toBe(7703);
-    expect(portFromNodeId("leader")).toBeNull();
+    expect(portFromNodeId("pendulum")).toBeNull();
+  });
+
+  it("orders node IDs numerically by port", () => {
+    expect(compareNodeIds("node-7700", "node-7704")).toBeLessThan(0);
+    expect(compareNodeIds("node-10000", "node-7704")).toBeGreaterThan(0);
+    expect(compareNodeIds("node-7702", "node-7702")).toBe(0);
   });
 });
 

@@ -47,6 +47,14 @@ export function portFromNodeId(nodeId: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+/** Orders node IDs by port, so `node-7700` sorts before `node-7704`. */
+export function compareNodeIds(a: string, b: string): number {
+  const portA = portFromNodeId(a);
+  const portB = portFromNodeId(b);
+  if (portA !== null && portB !== null) return portA - portB;
+  return a.localeCompare(b);
+}
+
 export const USAGE = `Usage: npm start -- [options]
 
 Starts a pendulum node on the first free port from ${BASE_PORT}.

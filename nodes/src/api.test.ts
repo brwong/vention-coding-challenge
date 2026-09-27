@@ -3,7 +3,6 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPendulum } from "./physics";
 import { createApp } from "./server";
-import { ElectionService } from "./services/electionService";
 import { MembershipService } from "./services/membershipService";
 import type { PeerConfig } from "./services/messages";
 import { PositionService } from "./services/positionService";
@@ -18,7 +17,6 @@ const PEER_CONFIG: PeerConfig = { x: 100, length: 100, mass: 4200 };
 let app: Express;
 let simulation: Simulation;
 let membership: MembershipService;
-let election: ElectionService;
 let position: PositionService;
 let protocol: ProtocolService;
 
@@ -32,12 +30,10 @@ beforeEach(() => {
   // Keep the node off the network: peers here exist only in the peer list.
   vi.spyOn(membership, "broadcast").mockResolvedValue([]);
   vi.spyOn(membership, "sendJoin").mockResolvedValue([]);
-  election = new ElectionService(NODE_ID, membership);
   position = new PositionService(NODE_ID, membership);
-  protocol = new ProtocolService(NODE_ID, simulation, membership, election);
+  protocol = new ProtocolService(NODE_ID, simulation, membership);
   app = createApp({ nodeId: NODE_ID, port: PORT }, simulation, {
     membership,
-    election,
     position,
     protocol,
   });
@@ -270,31 +266,31 @@ describe("POST /message", () => {
     expect(membership.peers.get("node-7702")?.config).toEqual(PEER_CONFIG);
   });
 
-  it("refreshes a peer's last heartbeat on HEARTBEAT", async () => {
+  it("refreshes a peer's last heartbeat and adopts its epoch on HEARTBEAT", async () => {
     addPeer("node-7701", 7701);
     await request(app)
       .post("/message")
-      .send({ type: "HEARTBEAT", nodeId: "node-7701", term: 2, isLeader: true })
+      .send({ type: "HEARTBEAT", nodeId: "node-7701", epoch: 2 })
       .expect(200, { accepted: true });
     expect(membership.peers.get("node-7701")!.lastHeartbeat).toBeGreaterThan(Date.now() - 1000);
-    expect(election.leaderId).toBe("node-7701");
-    expect(election.currentTerm).toBe(2);
+    const res = await request(app).get("/protocol-status").expect(200);
+    expect(res.body.epoch).toBe(2);
   });
 
   it("joins an unknown sender instead of ignoring it", async () => {
     await request(app)
       .post("/message")
-      .send({ type: "HEARTBEAT", nodeId: "node-7705", term: 0, isLeader: false })
+      .send({ type: "HEARTBEAT", nodeId: "node-7705", epoch: 0 })
       .expect(200);
     expect(membership.sendJoin).toHaveBeenCalledWith(7705);
   });
 
-  it("stops the node on STOP from a newer term", async () => {
+  it("stops the node on STOP from a newer epoch", async () => {
     addPeer("node-7701", 7701);
     simulation.start();
     await request(app)
       .post("/message")
-      .send({ type: "STOP", term: 1, from: "node-7701", reporter: "node-7701" })
+      .send({ type: "STOP", epoch: 1, from: "node-7701", reporter: "node-7701" })
       .expect(200, { accepted: true });
     expect(simulation.lifecycle).toBe("stopped");
     expect(protocol.state.stoppedBy).toBe("node-7701");
@@ -304,12 +300,13 @@ describe("POST /message", () => {
     addPeer("node-7701", 7701);
     await request(app)
       .post("/message")
-      .send({ type: "STOP", term: 1, from: "node-7701", reporter: "node-7701" });
+      .send({ type: "STOP", epoch: 1, from: "node-7701", reporter: "node-7701" });
     await request(app)
       .post("/message")
-      .send({ type: "RESTART", term: 1, from: "node-7701" })
+      .send({ type: "RESTART", epoch: 1, from: "node-7701" })
       .expect(200);
-    expect(protocol.state.restartBarrier).toEqual(new Set([NODE_ID, "node-7701"]));
+    // This node adds its own RESTART after a short pause.
+    expect(protocol.state.restartBarrier).toEqual(new Set(["node-7701"]));
   });
 
   it("caches the latest POSITION", async () => {
@@ -324,7 +321,7 @@ describe("POST /message", () => {
   it.each([
     [{ type: "HELLO" }, /Unknown message type/],
     [{}, /Unknown message type/],
-    [{ type: "STOP", term: "1", from: "node-7701" }, /needs a valid "term"/],
+    [{ type: "STOP", epoch: "1", from: "node-7701" }, /needs a valid "epoch"/],
     [{ type: "POSITION", pendulumId: "node-7701", angle: null, seq: 1 }, /needs a valid "angle"/],
     [{ type: "JOIN", nodeId: "node-7701", port: 7701, config: { x: 0 } }, /needs a valid "config"/],
   ])("rejects %j with 400", async (body, message) => {

@@ -13,7 +13,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 - Physics: 60 Hz fixed timestep, semi-implicit Euler, full nonlinear equation [physics:1]
 - Node ID format: `node-7701` (derived from port) [interfaces:1]
 - UI: SVG rendering, HTTP polling only, no WebSockets [interfaces:1]
-- Coordination: Leader/lease/election, term-based STOP/RESTART, quorum barrier [coordination:1]
+- Coordination: leaderless, epoch-numbered STOP/RESTART, all-live-nodes RESTART barrier (Section 4 describes the earlier leader-based version, kept on `main`) [coordination:1]
 
 If applicable, read the documentation in the `docs` folder - don't guess or invent the system from scratch.
 
@@ -1081,6 +1081,20 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 - [ ] Additional REST API and node-logic tests
 - [ ] Additional engineering improvements that demonstrate judgment
 - [x] Wind simulation, per the scope defined in `docs/bonus-wind.md`
+
+---
+
+## Section 9: Leaderless Coordination
+
+**Goal:** Match the spec's wording literally: the node that detects a collision sends STOP to all instances, and every node sends RESTART and waits for RESTART from all others. Kept on its own branch; `main` keeps the leader-based version.
+
+- [x] Remove the election service, `ELECTION_REQUEST`/`ELECTION_RESPONSE`, `COLLISION_DETECTED`, and the election timing constants
+- [x] Replace `term` with a stop `epoch`: a detector uses newest known epoch + 1; heartbeats carry the epoch so late joiners catch up
+- [x] Broadcast STOP from the detecting node; every node sends its own RESTART as soon as it stops
+- [x] Merge concurrent STOPs for the same epoch, keeping the lowest-ID reporter so all nodes agree
+- [x] Replace `term`/`leader`/`isLeader` with `epoch` in `GET /protocol-status`, and drop the UI's leader badge
+- [x] Update unit, API and multi-process tests (including a stop right after a node dies)
+- [x] Update `README.md`, `docs/coordination.md` and `docs/interfaces.md`
 
 ---
 

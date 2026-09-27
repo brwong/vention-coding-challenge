@@ -43,9 +43,7 @@ export async function fetchNodeStatus(port: number): Promise<PendulumStatus> {
 /** The fields the UI uses from a node's GET /protocol-status response. */
 export interface ProtocolStatus {
   nodeId: string
-  term: number
-  leader: string | null
-  isLeader: boolean
+  epoch: number // newest collision stop this node knows of
   lifecycle: Lifecycle
   restartBarrier: string[] // nodes this one has heard RESTART from
   awaitingRestart: boolean // stopped by a collision and still collecting RESTARTs

@@ -1,4 +1,4 @@
-import { setTimeout as delay } from "node:timers/promises";
+import { compareNodeIds } from "../config";
 import {
   RESTART_BARRIER_TIMEOUT_MS,
   RESTART_DELAY_MS,
@@ -6,32 +6,35 @@ import {
 } from "../constants";
 import type { Lifecycle, Simulation } from "../simulation";
 import { logEvent } from "../terminal";
-import type { ElectionService } from "./electionService";
 import type { MembershipService } from "./membershipService";
-import type { CollisionDetectedMessage, RestartMessage, StopMessage } from "./messages";
+import type { HeartbeatMessage, RestartMessage, StopMessage } from "./messages";
 
 export interface CoordinationState {
-  currentTerm: number;
+  epoch: number; // newest stop epoch this node knows of
   lifecycle: Lifecycle;
-  leaderId: string | null;
   restartBarrier: Set<string>; // nodes that sent RESTART for the current stop
   awaitingRestart: boolean; // stopped by the protocol and the RESTART barrier is still open
   quorumSize: number; // RESTART senders needed before the countdown starts
-  stoppedBy: string | null; // node whose collision report caused the current stop
+  stoppedBy: string | null; // node whose collision caused the current stop
 }
 
 /**
- * The STOP/RESTART state machine. On a collision report the leader starts a
- * new term, broadcasts STOP and then RESTART. Every node echoes RESTART to
- * all peers once, and when RESTART has arrived from every live node (or the
- * barrier times out) it resets its pendulum and resumes 5 seconds later.
- * Messages from older terms, and repeats, are ignored.
+ * The STOP/RESTART state machine, with no leader. A node that detects a
+ * collision starts a new epoch (one past the newest it knows of) and
+ * broadcasts STOP. Every node that stops, whether it detected the collision or
+ * heard about it, holds still briefly, broadcasts RESTART once and waits for
+ * RESTART from every live node (or the barrier timeout), then resets its
+ * pendulum and resumes 5 seconds later. Two nodes that detect the same collision pick the same epoch,
+ * so their STOPs merge into one stop. Messages from older epochs, and repeats,
+ * are ignored.
  */
 export class ProtocolService {
+  private epoch = 0; // newest epoch seen in any STOP, RESTART or heartbeat
   private readonly restartBarrier = new Set<string>();
-  private stoppedTerm = 0; // term of the latest STOP this node obeyed
-  private restartedTerm = 0; // term of the latest stop whose barrier completed
-  private stoppedBy: string | null = null; // reporter carried by the latest STOP this node obeyed
+  private stoppedEpoch = 0; // epoch of the latest stop this node obeyed
+  private restartedEpoch = 0; // epoch of the latest stop whose barrier completed
+  private stoppedBy: string | null = null; // lowest-ID reporter of the latest stop
+  private sendRestartTimer: NodeJS.Timeout | undefined;
   private barrierTimer: NodeJS.Timeout | undefined;
   private restartTimer: NodeJS.Timeout | undefined;
 
@@ -39,7 +42,6 @@ export class ProtocolService {
     private readonly nodeId: string,
     private readonly simulation: Simulation,
     private readonly membership: MembershipService,
-    private readonly election: ElectionService,
   ) {}
 
   /** Every node that is not suspected dead, including this one. */
@@ -50,110 +52,135 @@ export class ProtocolService {
 
   get state(): CoordinationState {
     return {
-      currentTerm: this.election.currentTerm,
+      epoch: this.epoch,
       lifecycle: this.simulation.lifecycle,
-      leaderId: this.election.leaderId,
       restartBarrier: new Set(this.restartBarrier),
-      awaitingRestart: this.stoppedTerm > this.restartedTerm,
+      awaitingRestart: this.stoppedEpoch > this.restartedEpoch,
       quorumSize: this.quorumSize,
       stoppedBy: this.stoppedBy,
     };
   }
 
-  /** Leader only: turns a collision report for the current term into STOP then RESTART. */
-  handleCollisionDetected(message: CollisionDetectedMessage): { accepted: boolean } {
-    if (!this.election.holdsLease() || message.term !== this.election.currentTerm) {
-      return { accepted: false };
-    }
-    const term = this.election.bumpTerm();
-    logEvent(`Collision reported by ${message.nodeId}; broadcasting STOP (term ${term})`);
-    this.enterStopped(term, message.nodeId);
-    void this.stopThenRestart(term, message.nodeId);
-    return { accepted: true };
+  heartbeat(): HeartbeatMessage {
+    return { type: "HEARTBEAT", nodeId: this.nodeId, epoch: this.epoch };
   }
 
-  private async stopThenRestart(term: number, reporter: string): Promise<void> {
-    await this.broadcastStop(term, reporter);
-    await delay(STOP_TO_RESTART_DELAY_MS);
-    // Leadership may have moved on; the barrier timeout then restarts everyone.
-    if (this.election.isLeader && this.election.currentTerm === term) {
-      this.handleRestart({ type: "RESTART", term, from: this.nodeId });
-    }
+  /**
+   * Heartbeats carry the sender's epoch, so a node that joined late or missed
+   * a stop still picks a new epoch the others will obey.
+   */
+  handleHeartbeat(message: HeartbeatMessage): void {
+    this.epoch = Math.max(this.epoch, message.epoch);
   }
 
-  async broadcastStop(term: number, reporter: string): Promise<void> {
-    await this.membership.broadcast({ type: "STOP", term, from: this.nodeId, reporter });
-  }
-
-  async broadcastRestart(term: number): Promise<void> {
-    await this.membership.broadcast({ type: "RESTART", term, from: this.nodeId });
+  /** This node detected a collision: stop everyone under a new epoch. */
+  reportCollision(peerId: string): void {
+    const epoch = this.epoch + 1;
+    logEvent(`Collision detected with ${peerId}; broadcasting STOP (epoch ${epoch})`);
+    void this.membership.broadcast({
+      type: "STOP",
+      epoch,
+      from: this.nodeId,
+      reporter: this.nodeId,
+    });
+    this.enterStopped(epoch, this.nodeId);
   }
 
   handleStop(message: StopMessage): void {
-    // A heartbeat may already have carried the new term, so compare against
-    // the last STOP obeyed as well as the current term.
-    if (message.term < this.election.currentTerm || message.term <= this.stoppedTerm) return;
-    this.election.adoptTerm(message.term, message.from);
-    logEvent(`STOP received from ${message.from} (term ${message.term}), stopping simulation`);
-    this.enterStopped(message.term, message.reporter);
+    if (message.epoch <= this.stoppedEpoch) {
+      // Another report of the latest stop; anything older is stale.
+      if (message.epoch === this.stoppedEpoch && this.stoppedEpoch > 0) {
+        this.noteReporter(message.reporter);
+      }
+      return;
+    }
+    // A heartbeat may already have carried this epoch, so only a strictly
+    // older one is stale.
+    if (message.epoch < this.epoch) return;
+    logEvent(`STOP received from ${message.from} (epoch ${message.epoch}), stopping simulation`);
+    this.enterStopped(message.epoch, message.reporter);
   }
 
-  private enterStopped(term: number, reporter: string | null): void {
-    this.stoppedTerm = term;
+  /**
+   * When both colliding nodes report the same stop, every node keeps the
+   * lower ID, so they all agree on one reporter.
+   */
+  private noteReporter(reporter: string): void {
+    if (this.stoppedBy === null || compareNodeIds(reporter, this.stoppedBy) < 0) {
+      this.stoppedBy = reporter;
+    }
+  }
+
+  /**
+   * Halts the pendulum and opens the barrier, then sends this node's RESTART
+   * after STOP_TO_RESTART_DELAY_MS. Without the pause the barrier would
+   * complete within milliseconds and reset the pendulum before anyone could
+   * see where it stopped.
+   */
+  private enterStopped(epoch: number, reporter: string | null): void {
+    this.epoch = Math.max(this.epoch, epoch);
+    this.stoppedEpoch = epoch;
     this.stoppedBy = reporter;
     this.simulation.stop();
-    this.restartBarrier.clear();
+    clearTimeout(this.sendRestartTimer);
     clearTimeout(this.restartTimer);
     clearTimeout(this.barrierTimer);
+    this.restartBarrier.clear();
+    this.sendRestartTimer = setTimeout(() => this.sendRestart(epoch), STOP_TO_RESTART_DELAY_MS);
     // Proceed with whoever has answered if some RESTART never arrives.
-    this.barrierTimer = setTimeout(() => this.completeBarrier(term), RESTART_BARRIER_TIMEOUT_MS);
+    this.barrierTimer = setTimeout(
+      () => this.completeBarrier(epoch),
+      STOP_TO_RESTART_DELAY_MS + RESTART_BARRIER_TIMEOUT_MS,
+    );
+  }
+
+  private sendRestart(epoch: number): void {
+    this.restartBarrier.add(this.nodeId);
+    logEvent(
+      `Sending RESTART (epoch ${epoch}); waiting for RESTART from ${this.quorumSize} nodes`,
+    );
+    void this.membership.broadcast({ type: "RESTART", epoch, from: this.nodeId });
+    this.checkBarrier(epoch);
   }
 
   handleRestart(message: RestartMessage): void {
-    if (message.term < this.election.currentTerm) return;
-    if (message.term > this.stoppedTerm) {
-      // This RESTART overtook its STOP.
-      this.election.adoptTerm(message.term);
-      logEvent(`RESTART received before STOP (term ${message.term}), stopping simulation`);
-      // The reporter is unknown here; a STOP for this term, if it still arrives, is now too late to update it.
-      this.enterStopped(message.term, null);
+    if (message.epoch < this.epoch) return;
+    if (message.epoch > this.stoppedEpoch) {
+      // This RESTART overtook its STOP; the STOP, when it arrives, fills in the reporter.
+      logEvent(`RESTART received before STOP (epoch ${message.epoch}), stopping simulation`);
+      this.enterStopped(message.epoch, null);
     }
-    if (message.term <= this.restartedTerm) return;
-
-    // Send our own RESTART the first time we see one for this term.
-    const echo = !this.restartBarrier.has(this.nodeId);
+    if (message.epoch <= this.restartedEpoch) return;
     this.restartBarrier.add(message.from);
-    if (echo) {
-      logEvent(
-        `Sending RESTART (term ${message.term}); waiting for RESTART from ${this.quorumSize} nodes`,
-      );
-      this.restartBarrier.add(this.nodeId);
-      void this.broadcastRestart(message.term);
-    }
-    if (this.restartBarrier.size >= this.quorumSize) this.completeBarrier(message.term);
+    this.checkBarrier(message.epoch);
+  }
+
+  private checkBarrier(epoch: number): void {
+    if (this.restartBarrier.size >= this.quorumSize) this.completeBarrier(epoch);
   }
 
   /** Resets the pendulum now, so peers see its start position, and resumes after RESTART_DELAY_MS. */
-  private completeBarrier(term: number): void {
-    if (term !== this.stoppedTerm || term <= this.restartedTerm) return;
-    this.restartedTerm = term;
+  private completeBarrier(epoch: number): void {
+    if (epoch !== this.stoppedEpoch || epoch <= this.restartedEpoch) return;
+    this.restartedEpoch = epoch;
     clearTimeout(this.barrierTimer);
     const heard = `${this.restartBarrier.size}/${this.quorumSize}`;
     const outcome = this.restartBarrier.size >= this.quorumSize ? "satisfied" : "timed out";
     logEvent(
-      `RESTART barrier ${outcome} (${heard} nodes, term ${term}), restarting in ${RESTART_DELAY_MS / 1000}s`,
+      `RESTART barrier ${outcome} (${heard} nodes, epoch ${epoch}), restarting in ${RESTART_DELAY_MS / 1000}s`,
     );
     this.simulation.beginRestart();
     this.restartTimer = setTimeout(() => {
       // The UI may have paused or stopped the node during the countdown.
       if (this.simulation.lifecycle !== "restarting") return;
       this.simulation.start();
-      logEvent(`Simulation restarted (term ${term})`);
+      logEvent(`Simulation restarted (epoch ${epoch})`);
     }, RESTART_DELAY_MS);
   }
 
   /** Clears pending timers on shutdown. */
   dispose(): void {
+    clearTimeout(this.sendRestartTimer);
     clearTimeout(this.barrierTimer);
     clearTimeout(this.restartTimer);
   }
