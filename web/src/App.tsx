@@ -105,11 +105,22 @@ function App() {
     if (anyPlaying) setConfigVisible(false)
   }, [statuses])
 
+  // Tracks each node's previously observed lifecycle so the wind clear below fires
+  // once per actual restart/reset transition, not on every poll while a node simply
+  // sits in the steady-state 'ready' lifecycle (e.g. before the first Start).
+  const previousLifecycles = useRef(new Map<string, PendulumStatus['lifecycle']>())
+
   // Restarting and reset both reset the pendulum position and clear wind on the
   // node, so the UI's displayed wind state must follow (docs/bonus-wind.md).
   useEffect(() => {
-    const anyReset = [...statuses.values()].some(
-      (status) => status.lifecycle === 'restarting' || status.lifecycle === 'ready',
+    const previous = previousLifecycles.current
+    const anyReset = [...statuses.entries()].some(
+      ([nodeId, status]) =>
+        (status.lifecycle === 'restarting' || status.lifecycle === 'ready') &&
+        previous.get(nodeId) !== status.lifecycle,
+    )
+    previousLifecycles.current = new Map(
+      [...statuses.entries()].map(([nodeId, status]) => [nodeId, status.lifecycle]),
     )
     if (anyReset) {
       setWindDraft(OFF_WIND_DRAFT)
