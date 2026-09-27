@@ -220,16 +220,22 @@ describe("multi-node coordination", { timeout: 30_000 }, () => {
     const c = await startNode(["--x", "400"]);
     const d = await startNode(["--x", "600"]);
     await fullyConnected([a, b, c, d]);
+    // Let the cluster settle, as a long-running one would have, before D dies.
+    await sleep(3000);
     await killNode(d);
 
-    // The collision comes well before D is even suspected dead.
+    // A and B collide about 0.8 s after starting, before D is even suspected
+    // dead (2 s). That first collision must stop everyone; a later one, a
+    // swing or two afterwards, would mean the first was missed.
     const cluster = [a, b, c];
+    const started = Date.now();
     await Promise.all(cluster.map((node) => post(node, "/start")));
     const seen = await watchStopAndRestart(cluster, 20_000);
     for (const node of cluster) {
       const times = seen.get(node.nodeId)!;
-      expect(times.has("stopped"), `${node.nodeId} stopped`).toBe(true);
-      expect(times.has("running"), `${node.nodeId} running again`).toBe(true);
+      expect(times.get("stopped"), `${node.nodeId} stopped`).toBeDefined();
+      expect(times.get("stopped")! - started, `${node.nodeId} stopped promptly`).toBeLessThan(1500);
+      expect(times.get("running"), `${node.nodeId} running again`).toBeDefined();
     }
   });
 
