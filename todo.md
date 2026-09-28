@@ -13,7 +13,7 @@ Do not mention this document in commit messages or code (comments). Check off it
 - Physics: 60 Hz fixed timestep, semi-implicit Euler, full nonlinear equation [physics:1]
 - Node ID format: `node-7701` (derived from port) [interfaces:1]
 - UI: SVG rendering, HTTP polling only, no WebSockets [interfaces:1]
-- Coordination: leaderless, epoch-numbered STOP/RESTART, all-live-nodes RESTART barrier (Section 4 describes the earlier leader-based version, kept on `main`) [coordination:1]
+- Coordination: leaderless, epoch-numbered STOP/RESTART, all-live-nodes RESTART barrier (Section 4 describes the earlier leader-based version, kept on `leader-election`) [coordination:1]
 
 If applicable, read the documentation in the `docs` folder - don't guess or invent the system from scratch.
 
@@ -1086,7 +1086,7 @@ function startNode(args: string[] = []): Promise<{ port: number, process: ChildP
 
 ## Section 9: Leaderless Coordination
 
-**Goal:** Match the spec's wording literally: the node that detects a collision sends STOP to all instances, and every node sends RESTART and waits for RESTART from all others. Kept on its own branch; `main` keeps the leader-based version.
+**Goal:** Match the spec's wording literally: the node that detects a collision sends STOP to all instances, and every node sends RESTART and waits for RESTART from all others. Now on `main`; the leader-based version is kept on `leader-election`.
 
 - [x] Remove the election service, `ELECTION_REQUEST`/`ELECTION_RESPONSE`, `COLLISION_DETECTED`, and the election timing constants
 - [x] Replace `term` with a stop `epoch`: a detector uses newest known epoch + 1; heartbeats carry the epoch so late joiners catch up
