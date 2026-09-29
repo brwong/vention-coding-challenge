@@ -13,6 +13,7 @@ import {
 import type { NodeInfo } from '../services/nodeDiscovery'
 import type { PendulumConfig, PendulumStatus } from '../services/nodeState'
 
+const OVERLAP_COLOR = '#dc2626'
 const PADDING = 20 // distance units around the outermost swing
 const UNREACHABLE_REACH = 20 // space kept around a hinge with no known config
 const HINGE_SIZE = 4
@@ -53,6 +54,8 @@ interface Props {
   draftConfig?: PendulumConfig
   // Whether draftConfig differs from the node's applied config.
   dirty: boolean
+  // Nodes whose starting bob the draft's starting bob would already touch.
+  overlappingNodeIds: Set<string>
   applyingDraft: boolean
   onDraftChange: (changes: Partial<PendulumConfig>) => void
   onApplyDraft: () => void
@@ -137,6 +140,7 @@ export function PendulumCanvas({
   selectedNodeId,
   draftConfig,
   dirty,
+  overlappingNodeIds,
   applyingDraft,
   onDraftChange,
   onApplyDraft,
@@ -226,6 +230,7 @@ export function PendulumCanvas({
         const { length, mass } = status.config
         const bob = bobPosition(x, length, status.state.angle)
         const radius = bobRadius(mass)
+        const overlapping = overlappingNodeIds.has(node.nodeId)
         return (
           <g
             key={node.nodeId}
@@ -239,9 +244,13 @@ export function PendulumCanvas({
               cy={bob.y}
               r={radius}
               fill={nodeColor(node.port)}
-              stroke={LIFECYCLE_COLORS[status.lifecycle] ?? UNREACHABLE_COLOR}
-              strokeWidth={selected ? 3 : 2}
-              strokeDasharray={LIFECYCLE_DASH[status.lifecycle]}
+              stroke={
+                overlapping
+                  ? OVERLAP_COLOR
+                  : (LIFECYCLE_COLORS[status.lifecycle] ?? UNREACHABLE_COLOR)
+              }
+              strokeWidth={selected || overlapping ? 3 : 2}
+              strokeDasharray={overlapping ? undefined : LIFECYCLE_DASH[status.lifecycle]}
             />
             <text x={x} y={HINGE_Y - 8} textAnchor="middle" className="label">
               {node.nodeId}
@@ -254,6 +263,7 @@ export function PendulumCanvas({
           config={draftConfig}
           dragging={drag?.part}
           dirty={dirty}
+          overlaps={overlappingNodeIds.size > 0}
           applying={applyingDraft}
           onHingeDown={(event) => startDrag('hinge', event)}
           onLengthDown={(event) => startDrag('length', event)}
@@ -270,6 +280,7 @@ interface DraftPendulumProps {
   config: PendulumConfig
   dragging?: DragPart
   dirty: boolean
+  overlaps: boolean
   applying: boolean
   onHingeDown: (event: PointerEvent<SVGElement>) => void
   onLengthDown: (event: PointerEvent<SVGElement>) => void
@@ -283,6 +294,7 @@ function DraftPendulum({
   config,
   dragging,
   dirty,
+  overlaps,
   applying,
   onHingeDown,
   onLengthDown,
@@ -358,7 +370,12 @@ function DraftPendulum({
         onPointerDown={onLengthDown}
         {...hoverProps('length')}
       />
-      <circle cx={bob.x} cy={bob.y} r={radius} className="draft-bob" />
+      <circle
+        cx={bob.x}
+        cy={bob.y}
+        r={radius}
+        className={overlaps ? 'draft-bob overlapping' : 'draft-bob'}
+      />
       <rect
         x={massHandle.x - MASS_HANDLE_SIZE / 2}
         y={massHandle.y - MASS_HANDLE_SIZE / 2}
@@ -371,7 +388,13 @@ function DraftPendulum({
       />
       {active && <HandleTooltip {...handlePositions[active]} text={HANDLE_LABELS[active]} />}
       {dirty && (
-        <ApplyButton x={applyButton.x} y={applyButton.y} applying={applying} onApply={onApply} />
+        <ApplyButton
+          x={applyButton.x}
+          y={applyButton.y}
+          applying={applying}
+          blocked={overlaps}
+          onApply={onApply}
+        />
       )}
     </g>
   )
@@ -379,22 +402,33 @@ function DraftPendulum({
 
 interface ApplyButtonProps extends Point {
   applying: boolean
+  // Shown but inert, because the draft overlaps another pendulum.
+  blocked: boolean
   onApply: () => void
 }
 
 /** A floating apply control beside the bob, so applying doesn't require reaching for the form. */
-function ApplyButton({ x, y, applying, onApply }: ApplyButtonProps) {
+function ApplyButton({ x, y, applying, blocked, onApply }: ApplyButtonProps) {
   function activate() {
-    if (!applying) onApply()
+    if (!applying && !blocked) onApply()
   }
+
+  const className = ['apply-draft-button', applying && 'applying', blocked && 'blocked']
+    .filter(Boolean)
+    .join(' ')
+  const label = applying
+    ? 'Applying configuration changes'
+    : blocked
+      ? 'Apply configuration changes (blocked: overlaps another pendulum)'
+      : 'Apply configuration changes'
 
   return (
     <g
-      className={applying ? 'apply-draft-button applying' : 'apply-draft-button'}
+      className={className}
       role="button"
       tabIndex={0}
-      aria-label={applying ? 'Applying configuration changes' : 'Apply configuration changes'}
-      aria-disabled={applying}
+      aria-label={label}
+      aria-disabled={applying || blocked}
       transform={`translate(${x - APPLY_BUTTON_WIDTH / 2}, ${y - APPLY_BUTTON_HEIGHT / 2})`}
       onClick={activate}
       onKeyDown={(event) => {

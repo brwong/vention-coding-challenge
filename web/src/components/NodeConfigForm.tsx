@@ -16,10 +16,19 @@ interface Props {
   currentConfig: PendulumConfig
   draft: ConfigDraft
   onDraftChange: (draft: ConfigDraft) => void
+  // Whether the draft's starting bob would already touch another node's.
+  overlaps: boolean
   onApply: (config: PendulumConfig) => Promise<void>
 }
 
-export function NodeConfigForm({ nodeId, currentConfig, draft, onDraftChange, onApply }: Props) {
+export function NodeConfigForm({
+  nodeId,
+  currentConfig,
+  draft,
+  onDraftChange,
+  overlaps,
+  onApply,
+}: Props) {
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string>()
 
@@ -31,7 +40,7 @@ export function NodeConfigForm({ nodeId, currentConfig, draft, onDraftChange, on
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!valid || applying) return
+    if (!valid || overlaps || applying) return
     setApplying(true)
     setError(undefined)
     try {
@@ -85,7 +94,7 @@ export function NodeConfigForm({ nodeId, currentConfig, draft, onDraftChange, on
         )
       })}
       <div className="form-actions">
-        <button type="submit" disabled={!dirty || !valid || applying}>
+        <button type="submit" disabled={!dirty || !valid || overlaps || applying}>
           {applying ? 'Applying…' : 'Apply'}
         </button>
         <button type="button" disabled={!dirty || applying} onClick={() => onDraftChange({})}>

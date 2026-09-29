@@ -305,6 +305,13 @@ button:disabled {
   pointer-events: none;
 }
 
+/* The draft's starting bob would already touch another pendulum's. */
+.pendulum-canvas .draft-bob.overlapping {
+  stroke: #dc2626;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
 .pendulum-canvas .handle {
   fill: var(--accent);
   fill-opacity: 0.15;
@@ -357,6 +364,15 @@ button:disabled {
 }
 
 .pendulum-canvas .apply-draft-button.applying rect {
+  fill: var(--muted);
+}
+
+.pendulum-canvas .apply-draft-button.blocked {
+  cursor: not-allowed;
+}
+
+.pendulum-canvas .apply-draft-button.blocked rect,
+.pendulum-canvas .apply-draft-button.blocked:hover rect {
   fill: var(--muted);
 }
 

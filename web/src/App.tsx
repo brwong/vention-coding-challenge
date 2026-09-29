@@ -4,7 +4,7 @@ import { NodeList } from './components/NodeList'
 import { PendulumCanvas } from './components/PendulumCanvas'
 import { OFF_WIND_DRAFT, WindControl, type WindDraft } from './components/WindControl'
 import { type ConfigDraft, pruneDraft, resolveDraft } from './configDraft'
-import { DEFAULT_AIR_DENSITY, DEFAULT_DRAG_COEFFICIENT } from './pendulum'
+import { DEFAULT_AIR_DENSITY, DEFAULT_DRAG_COEFFICIENT, startsOverlapping } from './pendulum'
 import { type NodeInfo, startPeriodicScan } from './services/nodeDiscovery'
 import {
   type LifecycleCommand,
@@ -223,6 +223,19 @@ function App() {
   const selectedStatus = selected === undefined ? undefined : statuses.get(selected)
   const draftFields = draft && draft.nodeId === selected ? draft.fields : {}
   const draftDirty = Object.keys(draftFields).length > 0
+  const draftConfig = selectedStatus && resolveDraft(selectedStatus.config, draftFields)
+  // Other nodes whose starting bob the draft's starting bob would already touch.
+  const overlappingNodeIds = new Set(
+    draftConfig
+      ? [...statuses.values()]
+          .filter(
+            (status) =>
+              status.nodeId !== selected && startsOverlapping(draftConfig, status.config),
+          )
+          .map((status) => status.nodeId)
+      : [],
+  )
+  const draftOverlaps = overlappingNodeIds.size > 0
 
   function updateDraft(fields: ConfigDraft) {
     if (!selectedStatus) return
@@ -245,10 +258,10 @@ function App() {
   // The canvas's own Apply button, next to the pendulum; mirrors the config form's Apply
   // but reports failures via the shared action message instead of an inline form error.
   async function applyDraftFromCanvas() {
-    if (!selectedStatus || !draftDirty || applyingDraft) return
+    if (!selectedStatus || !draftConfig || !draftDirty || draftOverlaps || applyingDraft) return
     setApplyingDraft(true)
     try {
-      await applySelectedConfig(resolveDraft(selectedStatus.config, draftFields))
+      await applySelectedConfig(draftConfig)
       updateDraft({})
       setActionMessage({ text: `${selectedStatus.nodeId} configuration applied`, error: false })
     } catch (err) {
@@ -312,10 +325,9 @@ function App() {
             statuses={statuses}
             unreachable={unreachable}
             selectedNodeId={selected}
-            draftConfig={
-              configVisible && selectedStatus ? resolveDraft(selectedStatus.config, draftFields) : undefined
-            }
+            draftConfig={configVisible ? draftConfig : undefined}
             dirty={draftDirty}
+            overlappingNodeIds={configVisible ? overlappingNodeIds : new Set()}
             applyingDraft={applyingDraft}
             onDraftChange={dragDraft}
             onApplyDraft={applyDraftFromCanvas}
@@ -340,6 +352,7 @@ function App() {
                   currentConfig={selectedStatus.config}
                   draft={draftFields}
                   onDraftChange={updateDraft}
+                  overlaps={draftOverlaps}
                   onApply={applySelectedConfig}
                 />
               ) : (

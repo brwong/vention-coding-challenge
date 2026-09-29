@@ -107,6 +107,48 @@ describe('App', () => {
   })
 })
 
+describe('config overlap', () => {
+  it('blocks Apply and outlines in red when the draft starts on top of another pendulum', async () => {
+    const { fetchMock } = threeNodes()
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    const form = await screen.findByRole('form', { name: 'Configure node-7700' })
+    const anchor = within(form).getByLabelText('Anchor position')
+
+    // node-7701 hangs at x = 100 with the same length, mass and angle.
+    await user.clear(anchor)
+    await user.type(anchor, '100')
+
+    expect(within(form).getByRole('button', { name: 'Apply' })).toBeDisabled()
+    expect(container.querySelector('.draft-bob.overlapping')).not.toBeNull()
+    const floating = screen.getByRole('button', { name: /^Apply configuration changes/ })
+    expect(floating).toHaveAttribute('aria-disabled', 'true')
+    const other = screen.getByRole('button', { name: 'Select node-7701' })
+    expect(other.querySelector('circle')).toHaveAttribute('stroke', '#dc2626')
+
+    await user.click(floating)
+    expect(callsTo(fetchMock, 'PUT', '/config')).toEqual([])
+  })
+
+  it('allows Apply once the draft no longer overlaps', async () => {
+    threeNodes()
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    const form = await screen.findByRole('form', { name: 'Configure node-7700' })
+    const anchor = within(form).getByLabelText('Anchor position')
+
+    await user.clear(anchor)
+    await user.type(anchor, '-100')
+
+    expect(within(form).getByRole('button', { name: 'Apply' })).toBeEnabled()
+    expect(container.querySelector('.draft-bob.overlapping')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Apply configuration changes' })).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    )
+  })
+})
+
 describe('wind', () => {
   it('disables Save until the wind toggle is dirty, then re-disables it once saved', async () => {
     threeNodes()

@@ -1,4 +1,4 @@
-import type { Lifecycle } from './services/nodeState'
+import type { Lifecycle, PendulumConfig } from './services/nodeState'
 
 // Matches the nodes: every hinge sits at y = 0 and positive y points down,
 // which is also SVG's orientation.
@@ -19,6 +19,22 @@ export function bobPosition(hingeX: number, length: number, angle: number): Poin
     x: hingeX + length * Math.sin(angle),
     y: HINGE_Y + length * Math.cos(angle),
   }
+}
+
+// Mirrors the nodes' COLLISION_MARGIN: bobs this close count as touching.
+export const COLLISION_MARGIN = 1
+
+/**
+ * True when two pendulums would already be colliding at their initial angles,
+ * using the nodes' collision rule. Every start, reset and restart returns the
+ * bobs there, so such a pair would collide again the moment it swings.
+ */
+export function startsOverlapping(a: PendulumConfig, b: PendulumConfig): boolean {
+  const toRad = (degrees: number) => (degrees * Math.PI) / 180
+  const p1 = bobPosition(a.x, a.length, toRad(a.angle))
+  const p2 = bobPosition(b.x, b.length, toRad(b.angle))
+  const distance = Math.hypot(p1.x - p2.x, p1.y - p2.y)
+  return distance <= bobRadius(a.mass) + bobRadius(b.mass) + COLLISION_MARGIN
 }
 
 export const LIFECYCLE_COLORS: Record<Lifecycle, string> = {
