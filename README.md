@@ -4,6 +4,10 @@ A distributed pendulum simulation. Each pendulum runs as its own Node.js server,
 
 (An earlier design that routes STOP/RESTART through an elected leader is kept on the `leader-election` branch; see [Technical decisions and trade-offs](#technical-decisions-and-trade-offs) for how the two compare.)
 
+![Screenshot of the pendulum web UI](docs/screenshot1.png)
+
+![Screenshot of the pendulum web UI during a collision](docs/screenshot2.png)
+
 ## Prerequisites
 
 - Node.js (v18+) and npm
